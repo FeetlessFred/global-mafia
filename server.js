@@ -13,34 +13,53 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const games = {};
 
+
+/* =====================================================
+   ROOM / PLAYER FUNCTIONS
+===================================================== */
+
 function createRoomCode() {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
     let code;
 
     do {
         code = "";
 
         for (let i = 0; i < 5; i++) {
-            code += chars[Math.floor(Math.random() * chars.length)];
+            code += chars[
+                Math.floor(Math.random() * chars.length)
+            ];
         }
+
     } while (games[code]);
 
     return code;
 }
 
+
 function getGame(code) {
     if (!code) return null;
-    return games[String(code).toUpperCase()];
+
+    return games[
+        String(code).toUpperCase()
+    ];
 }
+
 
 function getPlayer(game, id) {
-    if (!game) return null;
-    return game.players.find(player => player.id === id);
+    return game.players.find(
+        player => player.id === id
+    );
 }
 
+
 function getAlivePlayers(game) {
-    return game.players.filter(player => player.alive);
+    return game.players.filter(
+        player => player.alive
+    );
 }
+
 
 function publicPlayers(game) {
     return game.players.map(player => ({
@@ -50,39 +69,55 @@ function publicPlayers(game) {
     }));
 }
 
+
 function sendPlayers(code) {
     const game = getGame(code);
+
     if (!game) return;
 
-    io.to(code).emit("playersUpdate", {
-        players: publicPlayers(game)
-    });
+    io.to(code).emit(
+        "playersUpdate",
+        {
+            players: publicPlayers(game)
+        }
+    );
 }
+
 
 function sendPhase(code) {
     const game = getGame(code);
+
     if (!game) return;
 
-    io.to(code).emit("phaseUpdate", {
-        phase: game.phase,
-        nightStep: game.nightStep,
-        round: game.round,
-        timeLeft: game.timeLeft
-    });
+    io.to(code).emit(
+        "phaseUpdate",
+        {
+            phase: game.phase,
+            timeLeft: game.timeLeft
+        }
+    );
 }
+
 
 function sendSystemMessage(code, message) {
-    io.to(code).emit("systemMessage", message);
+    io.to(code).emit(
+        "systemMessage",
+        message
+    );
 }
 
-function stopTimer(game) {
-    if (!game) return;
 
+/* =====================================================
+   TIMER
+===================================================== */
+
+function stopTimer(game) {
     if (game.timer) {
         clearInterval(game.timer);
         game.timer = null;
     }
 }
+
 
 function startTimer(code, seconds, callback) {
     const game = getGame(code);
@@ -96,90 +131,163 @@ function startTimer(code, seconds, callback) {
     sendPhase(code);
 
     game.timer = setInterval(() => {
-        if (!getGame(code)) return;
 
         game.timeLeft--;
 
         sendPhase(code);
 
         if (game.timeLeft <= 0) {
+
             stopTimer(game);
+
             callback();
+
         }
+
     }, 1000);
 }
 
+
+/* =====================================================
+   ROLES
+===================================================== */
+
 function getMafiaCount(playerCount) {
-    if (playerCount >= 10) return 3;
-    if (playerCount >= 7) return 2;
+
+    if (playerCount >= 10) {
+        return 3;
+    }
+
+    if (playerCount >= 7) {
+        return 2;
+    }
+
     return 1;
 }
 
-function shuffle(array) {
-    const copy = [...array];
-
-    for (let i = copy.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-
-        [copy[i], copy[j]] = [copy[j], copy[i]];
-    }
-
-    return copy;
-}
 
 function createRoles(playerCount) {
-    const mafiaCount = getMafiaCount(playerCount);
 
     const roles = [];
 
-    for (let i = 0; i < mafiaCount; i++) {
+    const mafiaCount =
+        getMafiaCount(playerCount);
+
+    for (
+        let i = 0;
+        i < mafiaCount;
+        i++
+    ) {
         roles.push("Mafia");
     }
 
-    const remaining = playerCount - mafiaCount;
+    const remaining =
+        playerCount - mafiaCount;
 
     const otherRoles = [
-        "Detective",
+        "Citizen",
         "Doctor",
-        "Citizen"
+        "Detective"
     ];
 
-    for (let i = 0; i < remaining; i++) {
-        roles.push(otherRoles[i % 3]);
+    for (
+        let i = 0;
+        i < remaining;
+        i++
+    ) {
+
+        roles.push(
+            otherRoles[
+                i % otherRoles.length
+            ]
+        );
+
     }
 
-    return shuffle(roles);
+    for (
+        let i = roles.length - 1;
+        i > 0;
+        i--
+    ) {
+
+        const j =
+            Math.floor(
+                Math.random() * (i + 1)
+            );
+
+        [
+            roles[i],
+            roles[j]
+        ] =
+        [
+            roles[j],
+            roles[i]
+        ];
+
+    }
+
+    return roles;
 }
 
+
+/* =====================================================
+   WINNER
+===================================================== */
+
 function checkWinner(code) {
+
     const game = getGame(code);
 
-    if (!game || game.phase === "ended") return true;
+    if (!game) return true;
 
-    const alive = getAlivePlayers(game);
+    const alive =
+        getAlivePlayers(game);
 
-    const mafia = alive.filter(
-        player => player.role === "Mafia"
-    );
+    const mafia =
+        alive.filter(
+            player =>
+                player.role === "Mafia"
+        );
 
-    const nonMafia = alive.filter(
-        player => player.role !== "Mafia"
-    );
+    const nonMafia =
+        alive.filter(
+            player =>
+                player.role !== "Mafia"
+        );
 
     if (mafia.length === 0) {
-        endGame(code, "Citizens");
+
+        endGame(
+            code,
+            "Citizens"
+        );
+
         return true;
     }
 
-    if (mafia.length >= nonMafia.length) {
-        endGame(code, "Mafia");
+    if (
+        mafia.length >=
+        nonMafia.length
+    ) {
+
+        endGame(
+            code,
+            "Mafia"
+        );
+
         return true;
     }
 
     return false;
 }
 
+
+/* =====================================================
+   END GAME
+===================================================== */
+
 function endGame(code, winner) {
+
     const game = getGame(code);
 
     if (!game) return;
@@ -188,71 +296,57 @@ function endGame(code, winner) {
 
     game.phase = "ended";
     game.nightStep = null;
-    game.timeLeft = 0;
 
-    io.to(code).emit("gameOver", {
-        winner,
-        players: game.players.map(player => ({
-            name: player.name,
-            role: player.role,
-            alive: player.alive
-        }))
-    });
+    io.to(code).emit(
+        "gameOver",
+        {
+            winner,
+
+            players:
+                game.players.map(
+                    player => ({
+                        name: player.name,
+                        role: player.role
+                    })
+                )
+        }
+    );
 
     sendPhase(code);
 }
 
-function getChatRoleForNightStep(step) {
-    if (step === "mafia") return "Mafia";
-    if (step === "doctor") return "Doctor";
-    if (step === "detective") return "Detective";
 
-    return null;
-}
-
-function sendPrivateRoleChat(game, role, sender, message) {
-    game.players.forEach(player => {
-        if (
-            player.alive &&
-            player.role === role
-        ) {
-            io.to(player.id).emit("chatMessage", {
-                name: sender.name,
-                message,
-                private: true,
-                role
-            });
-        }
-    });
-}
+/* =====================================================
+   START GAME
+===================================================== */
 
 function startGame(code) {
+
     const game = getGame(code);
 
     if (!game) return;
 
-    if (game.players.length < 4) {
-        io.to(game.host).emit(
-            "errorMessage",
-            "You need at least 4 players to start."
+    const roles =
+        createRoles(
+            game.players.length
         );
 
-        return;
-    }
+    game.players.forEach(
+        (player, index) => {
 
-    const roles = createRoles(game.players.length);
+            player.role =
+                roles[index];
 
-    game.players.forEach((player, index) => {
-        player.role = roles[index];
-        player.alive = true;
-        player.hasVoted = false;
-    });
+            player.alive = true;
+
+            player.hasVoted = false;
+
+        }
+    );
 
     game.phase = "night";
     game.round = 1;
     game.nightStep = "mafia";
-
-    game.votes = {};
 
     game.nightActions = {
         mafia: {},
@@ -261,19 +355,35 @@ function startGame(code) {
         detective: null
     };
 
-    game.players.forEach(player => {
-        const mafiaMembers = game.players
-            .filter(p => p.role === "Mafia")
-            .map(p => p.name);
+    game.votes = {};
 
-        io.to(player.id).emit("yourRole", {
-            role: player.role,
-            mafiaMembers:
-                player.role === "Mafia"
-                    ? mafiaMembers
-                    : []
-        });
-    });
+    game.players.forEach(
+        player => {
+
+            const mafiaMembers =
+                game.players
+                    .filter(
+                        p =>
+                            p.role === "Mafia"
+                    )
+                    .map(
+                        p => p.name
+                    );
+
+            io.to(player.id).emit(
+                "yourRole",
+                {
+                    role: player.role,
+
+                    mafiaMembers:
+                        player.role === "Mafia"
+                            ? mafiaMembers
+                            : []
+                }
+            );
+
+        }
+    );
 
     sendPlayers(code);
 
@@ -285,7 +395,13 @@ function startGame(code) {
     startMafiaPhase(code);
 }
 
+
+/* =====================================================
+   MAFIA PHASE
+===================================================== */
+
 function startMafiaPhase(code) {
+
     const game = getGame(code);
 
     if (!game) return;
@@ -293,113 +409,166 @@ function startMafiaPhase(code) {
     game.phase = "night";
     game.nightStep = "mafia";
 
-    game.nightActions.mafia = {};
-
     sendPhase(code);
 
-    const mafiaPlayers = game.players.filter(
-        player =>
-            player.role === "Mafia" &&
-            player.alive
-    );
+    const mafiaPlayers =
+        game.players.filter(
+            player =>
+                player.role === "Mafia" &&
+                player.alive
+        );
 
     if (mafiaPlayers.length === 0) {
+
         startDoctorPhase(code);
+
         return;
     }
 
-    game.players.forEach(player => {
-        if (!player.alive) return;
+    game.nightActions.mafia = {};
 
-        if (player.role === "Mafia") {
-            const targets = game.players
-                .filter(
-                    target =>
-                        target.alive &&
-                        target.role !== "Mafia"
-                )
-                .map(target => ({
-                    id: target.id,
-                    name: target.name
-                }));
+    game.players.forEach(
+        player => {
 
-            io.to(player.id).emit(
-                "nightStarted",
-                {
-                    step: "mafia",
-                    title: "Mafia Decision",
-                    message: "Choose someone to attack.",
-                    targets
-                }
-            );
-        } else {
-            io.to(player.id).emit(
-                "nightStarted",
-                {
-                    step: "mafia",
-                    title: "Mafia Decision",
-                    message: "The Mafia are deciding who to attack.",
-                    targets: []
-                }
-            );
+            if (!player.alive) return;
+
+            if (player.role === "Mafia") {
+
+                io.to(player.id).emit(
+                    "nightStarted",
+                    {
+                        message:
+                            "🔴 Mafia Decision: choose someone to attack.",
+
+                        targets:
+                            game.players
+                                .filter(
+                                    p =>
+                                        p.alive &&
+                                        p.role !== "Mafia"
+                                )
+                                .map(
+                                    p => ({
+                                        id: p.id,
+                                        name: p.name
+                                    })
+                                )
+                    }
+                );
+
+            } else {
+
+                io.to(player.id).emit(
+                    "nightStarted",
+                    {
+                        message:
+                            "😴 The Mafia are making their decision.",
+
+                        targets: []
+                    }
+                );
+
+            }
+
         }
-    });
+    );
 
-    startTimer(code, 30, () => {
-        finishMafiaPhase(code);
-    });
+    startTimer(
+        code,
+        30,
+        () => {
+            finishMafiaPhase(code);
+        }
+    );
 }
 
+
+/* =====================================================
+   MAFIA ACTION
+===================================================== */
+
 function mafiaAction(socket, data) {
-    const game = getGame(data.code);
+
+    const game =
+        getGame(data.code);
 
     if (!game) return;
 
     if (
         game.phase !== "night" ||
         game.nightStep !== "mafia"
-    ) {
-        return;
-    }
+    ) return;
 
-    const player = getPlayer(game, socket.id);
-    const target = getPlayer(game, data.targetId);
+    const player =
+        getPlayer(
+            game,
+            socket.id
+        );
+
+    const target =
+        getPlayer(
+            game,
+            data.targetId
+        );
 
     if (!player || !target) return;
 
     if (
         player.role !== "Mafia" ||
         !player.alive
+    ) return;
+
+    if (!target.alive) return;
+
+    if (target.role === "Mafia") return;
+
+    if (
+        game.nightActions.mafia[
+            player.id
+        ]
     ) {
         return;
     }
 
-    if (!target.alive) return;
-    if (target.role === "Mafia") return;
+    game.nightActions.mafia[
+        player.id
+    ] = target.id;
 
-    game.nightActions.mafia[player.id] =
-        target.id;
-
-    socket.emit("actionSubmitted", {
-        message: "Mafia decision submitted."
-    });
-
-    const livingMafia = game.players.filter(
-        p =>
-            p.role === "Mafia" &&
-            p.alive
+    socket.emit(
+        "actionSubmitted"
     );
 
-    const submitted = Object.keys(
-        game.nightActions.mafia
-    ).length;
+    const livingMafia =
+        game.players.filter(
+            p =>
+                p.role === "Mafia" &&
+                p.alive
+        );
 
-    if (submitted >= livingMafia.length) {
-        finishMafiaPhase(data.code);
+    const submitted =
+        Object.keys(
+            game.nightActions.mafia
+        ).length;
+
+    if (
+        submitted >=
+        livingMafia.length
+    ) {
+
+        finishMafiaPhase(
+            data.code
+        );
+
     }
 }
 
+
+/* =====================================================
+   FINISH MAFIA
+===================================================== */
+
 function finishMafiaPhase(code) {
+
     const game = getGame(code);
 
     if (!game) return;
@@ -407,136 +576,193 @@ function finishMafiaPhase(code) {
     if (
         game.phase !== "night" ||
         game.nightStep !== "mafia"
-    ) {
-        return;
-    }
+    ) return;
 
     stopTimer(game);
 
-    const choices = Object.values(
-        game.nightActions.mafia
-    );
+    const mafiaChoices =
+        Object.values(
+            game.nightActions.mafia
+        );
 
-    let target = null;
+    let mafiaTarget = null;
 
-    if (choices.length > 0) {
+    if (
+        mafiaChoices.length > 0
+    ) {
+
         const counts = {};
 
-        choices.forEach(id => {
-            counts[id] = (counts[id] || 0) + 1;
-        });
+        mafiaChoices.forEach(
+            id => {
 
-        let highest = 0;
+                counts[id] =
+                    (counts[id] || 0) + 1;
 
-        Object.keys(counts).forEach(id => {
-            if (counts[id] > highest) {
-                highest = counts[id];
-                target = id;
             }
-        });
+        );
+
+        mafiaTarget =
+            Object.keys(counts)
+                .sort(
+                    (a, b) =>
+                        counts[b] -
+                        counts[a]
+                )[0];
+
     }
 
-    game.nightActions.mafiaTarget = target;
+    game.nightActions.mafiaTarget =
+        mafiaTarget;
 
     startDoctorPhase(code);
 }
 
+
+/* =====================================================
+   DOCTOR PHASE
+===================================================== */
+
 function startDoctorPhase(code) {
+
     const game = getGame(code);
 
     if (!game) return;
 
     game.phase = "night";
     game.nightStep = "doctor";
+
     game.nightActions.doctor = null;
 
     sendPhase(code);
 
-    const doctors = game.players.filter(
-        player =>
-            player.role === "Doctor" &&
-            player.alive
-    );
+    const doctor =
+        game.players.find(
+            player =>
+                player.role === "Doctor" &&
+                player.alive
+        );
 
-    if (doctors.length === 0) {
+    if (!doctor) {
+
         startDetectivePhase(code);
+
         return;
     }
 
-    game.players.forEach(player => {
-        if (!player.alive) return;
+    game.players.forEach(
+        player => {
 
-        if (player.role === "Doctor") {
-            const targets = game.players
-                .filter(target => target.alive)
-                .map(target => ({
-                    id: target.id,
-                    name: target.name
-                }));
+            if (!player.alive) return;
 
-            io.to(player.id).emit(
-                "nightStarted",
-                {
-                    step: "doctor",
-                    title: "Doctor Decision",
-                    message: "Choose someone to protect.",
-                    targets
-                }
-            );
-        } else {
-            io.to(player.id).emit(
-                "nightStarted",
-                {
-                    step: "doctor",
-                    title: "Doctor Decision",
-                    message: "The Doctor is deciding who to protect.",
-                    targets: []
-                }
-            );
+            if (player.role === "Doctor") {
+
+                io.to(player.id).emit(
+                    "nightStarted",
+                    {
+                        message:
+                            "🩺 Doctor Decision: choose someone to protect.",
+
+                        targets:
+                            game.players
+                                .filter(
+                                    p =>
+                                        p.alive
+                                )
+                                .map(
+                                    p => ({
+                                        id: p.id,
+                                        name: p.name
+                                    })
+                                )
+                    }
+                );
+
+            } else {
+
+                io.to(player.id).emit(
+                    "nightStarted",
+                    {
+                        message:
+                            "😴 The Doctor is making their decision.",
+
+                        targets: []
+                    }
+                );
+
+            }
+
         }
-    });
+    );
 
-    startTimer(code, 30, () => {
-        finishDoctorPhase(code);
-    });
+    startTimer(
+        code,
+        30,
+        () => {
+            finishDoctorPhase(code);
+        }
+    );
 }
 
+
+/* =====================================================
+   DOCTOR ACTION
+===================================================== */
+
 function doctorAction(socket, data) {
-    const game = getGame(data.code);
+
+    const game =
+        getGame(data.code);
 
     if (!game) return;
 
     if (
         game.phase !== "night" ||
         game.nightStep !== "doctor"
-    ) {
-        return;
-    }
+    ) return;
 
-    const player = getPlayer(game, socket.id);
-    const target = getPlayer(game, data.targetId);
+    const player =
+        getPlayer(
+            game,
+            socket.id
+        );
+
+    const target =
+        getPlayer(
+            game,
+            data.targetId
+        );
 
     if (!player || !target) return;
 
     if (
         player.role !== "Doctor" ||
         !player.alive
+    ) return;
+
+    if (!target.alive) return;
+
+    if (
+        game.nightActions.doctor
     ) {
         return;
     }
 
-    if (!target.alive) return;
+    game.nightActions.doctor =
+        target.id;
 
-    game.nightActions.doctor = target.id;
+    socket.emit(
+        "actionSubmitted"
+    );
 
-    socket.emit("actionSubmitted", {
-        message: "Doctor decision submitted."
-    });
-
-    finishDoctorPhase(data.code);
+    finishDoctorPhase(
+        data.code
+    );
 }
 
+
 function finishDoctorPhase(code) {
+
     const game = getGame(code);
 
     if (!game) return;
@@ -544,124 +770,180 @@ function finishDoctorPhase(code) {
     if (
         game.phase !== "night" ||
         game.nightStep !== "doctor"
-    ) {
-        return;
-    }
+    ) return;
 
     stopTimer(game);
 
     startDetectivePhase(code);
 }
 
+
+/* =====================================================
+   DETECTIVE PHASE
+===================================================== */
+
 function startDetectivePhase(code) {
+
     const game = getGame(code);
 
     if (!game) return;
 
     game.phase = "night";
     game.nightStep = "detective";
+
     game.nightActions.detective = null;
 
     sendPhase(code);
 
-    const detectives = game.players.filter(
-        player =>
-            player.role === "Detective" &&
-            player.alive
-    );
+    const detective =
+        game.players.find(
+            player =>
+                player.role === "Detective" &&
+                player.alive
+        );
 
-    if (detectives.length === 0) {
+    if (!detective) {
+
         finishDetectivePhase(code);
+
         return;
     }
 
-    game.players.forEach(player => {
-        if (!player.alive) return;
+    game.players.forEach(
+        player => {
 
-        if (player.role === "Detective") {
-            const targets = game.players
-                .filter(
-                    target =>
-                        target.alive &&
-                        target.id !== player.id
-                )
-                .map(target => ({
-                    id: target.id,
-                    name: target.name
-                }));
+            if (!player.alive) return;
 
-            io.to(player.id).emit(
-                "nightStarted",
-                {
-                    step: "detective",
-                    title: "Detective Decision",
-                    message: "Choose someone to investigate.",
-                    targets
-                }
-            );
-        } else {
-            io.to(player.id).emit(
-                "nightStarted",
-                {
-                    step: "detective",
-                    title: "Detective Decision",
-                    message: "The Detective is investigating someone.",
-                    targets: []
-                }
-            );
+            if (
+                player.role ===
+                "Detective"
+            ) {
+
+                io.to(player.id).emit(
+                    "nightStarted",
+                    {
+                        message:
+                            "🔎 Detective Decision: choose someone to investigate.",
+
+                        targets:
+                            game.players
+                                .filter(
+                                    p =>
+                                        p.alive &&
+                                        p.id !== player.id
+                                )
+                                .map(
+                                    p => ({
+                                        id: p.id,
+                                        name: p.name
+                                    })
+                                )
+                    }
+                );
+
+            } else {
+
+                io.to(player.id).emit(
+                    "nightStarted",
+                    {
+                        message:
+                            "😴 The Detective is making their decision.",
+
+                        targets: []
+                    }
+                );
+
+            }
+
         }
-    });
+    );
 
-    startTimer(code, 30, () => {
-        finishDetectivePhase(code);
-    });
+    startTimer(
+        code,
+        30,
+        () => {
+            finishDetectivePhase(code);
+        }
+    );
 }
 
+
+/* =====================================================
+   DETECTIVE ACTION
+===================================================== */
+
 function detectiveAction(socket, data) {
-    const game = getGame(data.code);
+
+    const game =
+        getGame(data.code);
 
     if (!game) return;
 
     if (
         game.phase !== "night" ||
         game.nightStep !== "detective"
-    ) {
-        return;
-    }
+    ) return;
 
-    const player = getPlayer(game, socket.id);
-    const target = getPlayer(game, data.targetId);
+    const player =
+        getPlayer(
+            game,
+            socket.id
+        );
+
+    const target =
+        getPlayer(
+            game,
+            data.targetId
+        );
 
     if (!player || !target) return;
 
     if (
         player.role !== "Detective" ||
         !player.alive
+    ) return;
+
+    if (!target.alive) return;
+
+    if (
+        player.id === target.id
+    ) return;
+
+    if (
+        game.nightActions.detective
     ) {
         return;
     }
 
-    if (!target.alive) return;
-    if (target.id === player.id) return;
+    game.nightActions.detective =
+        target.id;
 
-    game.nightActions.detective = target.id;
+    socket.emit(
+        "actionSubmitted"
+    );
 
-    io.to(player.id).emit(
+    socket.emit(
         "detectiveResult",
         {
             name: target.name,
-            mafia: target.role === "Mafia"
+
+            mafia:
+                target.role === "Mafia"
         }
     );
 
-    socket.emit("actionSubmitted", {
-        message: "Investigation submitted."
-    });
-
-    finishDetectivePhase(data.code);
+    finishDetectivePhase(
+        data.code
+    );
 }
 
+
+/* =====================================================
+   FINISH NIGHT
+===================================================== */
+
 function finishDetectivePhase(code) {
+
     const game = getGame(code);
 
     if (!game) return;
@@ -669,9 +951,7 @@ function finishDetectivePhase(code) {
     if (
         game.phase !== "night" ||
         game.nightStep !== "detective"
-    ) {
-        return;
-    }
+    ) return;
 
     stopTimer(game);
 
@@ -682,638 +962,1077 @@ function finishDetectivePhase(code) {
         game.nightActions.doctor;
 
     let nightMessage =
-        "🌙 Nobody was eliminated during the night.";
+        "🌙 Nothing happened during the night.";
 
     if (mafiaTarget) {
-        const target = getPlayer(
-            game,
-            mafiaTarget
-        );
+
+        const target =
+            getPlayer(
+                game,
+                mafiaTarget
+            );
 
         if (
             target &&
-            target.alive
+            mafiaTarget !== doctorTarget
         ) {
-            if (doctorTarget === mafiaTarget) {
-                nightMessage =
-                    "🩺 The Doctor saved someone from the Mafia!";
-            } else {
-                target.alive = false;
 
-                nightMessage =
-                    `💀 ${target.name} was eliminated during the night.`;
-            }
+            target.alive = false;
+
+            nightMessage =
+                `💀 ${target.name} was eliminated during the night.`;
+
+        } else if (
+            target &&
+            mafiaTarget === doctorTarget
+        ) {
+
+            nightMessage =
+                "🩺 The Doctor saved someone from an attack!";
+
         }
+
     }
 
-    sendSystemMessage(code, nightMessage);
+    sendSystemMessage(
+        code,
+        nightMessage
+    );
 
     sendPlayers(code);
 
-    if (checkWinner(code)) {
+    if (
+        checkWinner(code)
+    ) {
         return;
     }
 
-    setTimeout(() => {
-        const currentGame = getGame(code);
+    setTimeout(
+        () => {
 
-        if (
-            !currentGame ||
-            currentGame.phase === "ended"
-        ) {
-            return;
-        }
+            startDay(code);
 
-        startDay(code);
-    }, 3000);
+        },
+        3000
+    );
 }
 
+
+/* =====================================================
+   DAY
+===================================================== */
+
 function startDay(code) {
+
     const game = getGame(code);
 
     if (!game) return;
 
     game.phase = "day";
     game.nightStep = null;
+
+    /*
+       IMPORTANT:
+       Reset every player's vote here.
+       This is a brand-new voting period.
+    */
+
     game.votes = {};
 
-    game.players.forEach(player => {
-        player.hasVoted = false;
-    });
+    game.players.forEach(
+        player => {
+            player.hasVoted = false;
+        }
+    );
 
     sendPhase(code);
 
     sendSystemMessage(
         code,
-        `☀️ Day ${game.round} has begun. Everyone alive can talk and vote.`
+        `☀️ Day ${game.round} has begun. Everyone can talk!`
     );
 
-    io.to(code).emit("dayStarted");
+    io.to(code).emit(
+        "dayStarted"
+    );
 
-    startTimer(code, 60, () => {
-        finishVoting(code);
-    });
+    startTimer(
+        code,
+        60,
+        () => {
+            finishVoting(code);
+        }
+    );
 }
 
-function sendVoteTargets(socket, game) {
-    const player = getPlayer(game, socket.id);
 
-    if (!player || !player.alive) {
-        socket.emit("voteTargets", {
-            targets: []
-        });
-
-        return;
-    }
-
-    if (player.hasVoted) {
-        socket.emit("voteTargets", {
-            targets: []
-        });
-
-        return;
-    }
-
-    const targets = game.players
-        .filter(
-            target =>
-                target.alive &&
-                target.id !== player.id
-        )
-        .map(target => ({
-            id: target.id,
-            name: target.name
-        }));
-
-    socket.emit("voteTargets", {
-        targets
-    });
-}
+/* =====================================================
+   VOTING
+===================================================== */
 
 function vote(socket, data) {
-    const game = getGame(data.code);
+
+    const game =
+        getGame(data.code);
 
     if (!game) return;
 
-    if (game.phase !== "day") return;
-
-    const player = getPlayer(game, socket.id);
-    const target = getPlayer(game, data.targetId);
-
-    if (!player || !target) return;
-
-    if (!player.alive) return;
-    if (!target.alive) return;
-    if (player.id === target.id) return;
-
-    // IMPORTANT:
-    // A player can only vote ONCE.
-    if (player.hasVoted) {
+    if (
+        game.phase !== "day"
+    ) {
         return;
     }
+
+    const player =
+        getPlayer(
+            game,
+            socket.id
+        );
+
+    const target =
+        getPlayer(
+            game,
+            data.targetId
+        );
+
+    if (!player || !target) {
+        return;
+    }
+
+    if (!player.alive) {
+        return;
+    }
+
+    if (!target.alive) {
+        return;
+    }
+
+    if (
+        player.id === target.id
+    ) {
+        return;
+    }
+
+
+    /*
+       =================================================
+       IMPORTANT ONE-VOTE CHECK
+       =================================================
+
+       If this player has already voted,
+       the server completely ignores the
+       second vote.
+    */
+
+    if (player.hasVoted) {
+
+        socket.emit(
+            "errorMessage",
+            "🗳️ You have already voted. You cannot change your vote."
+        );
+
+        return;
+    }
+
+
+    /*
+       Mark the player as having voted BEFORE
+       storing the vote.
+    */
 
     player.hasVoted = true;
 
-    game.votes[player.id] = target.id;
+    game.votes[player.id] =
+        target.id;
 
-    socket.emit("voteSubmitted", {
-        targetName: target.name
-    });
 
-    const alive = getAlivePlayers(game);
+    socket.emit(
+        "voteSubmitted",
+        {
+            targetName: target.name
+        }
+    );
 
-    const voteCount = Object.keys(game.votes).length;
 
-    if (voteCount >= alive.length) {
-        finishVoting(data.code);
+    sendSystemMessage(
+        data.code,
+        `🗳️ ${player.name} has voted.`
+    );
+
+
+    const alive =
+        getAlivePlayers(game);
+
+    const submittedVotes =
+        Object.keys(
+            game.votes
+        ).length;
+
+
+    if (
+        submittedVotes >=
+        alive.length
+    ) {
+
+        finishVoting(
+            data.code
+        );
+
     }
+
 }
 
+
+/* =====================================================
+   FINISH VOTING
+===================================================== */
+
 function finishVoting(code) {
-    const game = getGame(code);
+
+    const game =
+        getGame(code);
 
     if (!game) return;
 
-    if (game.phase !== "day") return;
+    if (
+        game.phase !== "day"
+    ) {
+        return;
+    }
 
     stopTimer(game);
 
     const counts = {};
 
-    Object.values(game.votes).forEach(targetId => {
-        counts[targetId] =
-            (counts[targetId] || 0) + 1;
-    });
+    Object.values(
+        game.votes
+    ).forEach(
+        targetId => {
 
-    let eliminatedId = null;
-    let highest = 0;
+            counts[targetId] =
+                (counts[targetId] || 0) + 1;
 
-    Object.keys(counts).forEach(id => {
-        if (counts[id] > highest) {
-            highest = counts[id];
-            eliminatedId = id;
         }
-    });
+    );
 
-    if (!eliminatedId) {
+    const entries =
+        Object.entries(counts);
+
+    if (
+        entries.length === 0
+    ) {
+
         sendSystemMessage(
             code,
-            "⚖️ Nobody was eliminated today."
-        );
-    } else {
-        const target = getPlayer(
-            game,
-            eliminatedId
+            "🗳️ Nobody received a vote."
         );
 
-        if (target && target.alive) {
-            target.alive = false;
+    } else {
+
+        entries.sort(
+            (a, b) =>
+                b[1] - a[1]
+        );
+
+        const highest =
+            entries[0][1];
+
+        const winners =
+            entries.filter(
+                entry =>
+                    entry[1] === highest
+            );
+
+        if (
+            winners.length > 1
+        ) {
 
             sendSystemMessage(
                 code,
-                `⚖️ ${target.name} was eliminated by vote. They were ${target.role}.`
+                "🤝 The vote was tied. Nobody was eliminated."
             );
+
+        } else {
+
+            const eliminated =
+                getPlayer(
+                    game,
+                    winners[0][0]
+                );
+
+            if (eliminated) {
+
+                eliminated.alive =
+                    false;
+
+                sendSystemMessage(
+                    code,
+                    `🗳️ ${eliminated.name} was voted out.`
+                );
+
+                sendSystemMessage(
+                    code,
+                    `${eliminated.name}'s role was ${eliminated.role}.`
+                );
+
+            }
+
         }
+
     }
 
     sendPlayers(code);
 
-    if (checkWinner(code)) {
+    if (
+        checkWinner(code)
+    ) {
         return;
     }
 
-    setTimeout(() => {
-        const currentGame = getGame(code);
+    setTimeout(
+        () => {
 
-        if (
-            !currentGame ||
-            currentGame.phase === "ended"
-        ) {
-            return;
-        }
+            game.round++;
 
-        currentGame.round++;
+            startMafiaPhase(code);
 
-        startNight(code);
-    }, 3000);
-}
-
-function startNight(code) {
-    const game = getGame(code);
-
-    if (!game) return;
-
-    game.phase = "night";
-    game.nightStep = "mafia";
-
-    game.nightActions = {
-        mafia: {},
-        mafiaTarget: null,
-        doctor: null,
-        detective: null
-    };
-
-    sendSystemMessage(
-        code,
-        `🌙 Night ${game.round} has begun.`
+        },
+        4000
     );
-
-    startMafiaPhase(code);
 }
 
-function handleChat(socket, data) {
-    const game = getGame(data.code);
+
+/* =====================================================
+   CHAT
+===================================================== */
+
+function sendChat(socket, data) {
+
+    const game =
+        getGame(data.code);
 
     if (!game) return;
 
-    const player = getPlayer(game, socket.id);
+    const player =
+        getPlayer(
+            game,
+            socket.id
+        );
 
     if (!player) return;
 
     if (!player.alive) return;
 
     const message =
-        String(data.message || "")
-            .trim()
-            .slice(0, 300);
+        String(
+            data.message || ""
+        )
+        .trim()
+        .substring(0, 200);
 
     if (!message) return;
 
-    if (game.phase === "day") {
+
+    /* DAY CHAT */
+
+    if (
+        game.phase === "day"
+    ) {
+
         io.to(data.code).emit(
             "chatMessage",
             {
                 name: player.name,
-                message,
-                private: false
+                message
             }
         );
 
         return;
     }
 
-    if (game.phase === "night") {
-        const allowedRole =
-            getChatRoleForNightStep(
-                game.nightStep
+
+    /* NIGHT CHAT */
+
+    if (
+        game.phase !== "night"
+    ) {
+        return;
+    }
+
+
+    /* MAFIA CHAT */
+
+    if (
+        game.nightStep === "mafia" &&
+        player.role === "Mafia"
+    ) {
+
+        game.players
+            .filter(
+                p =>
+                    p.alive &&
+                    p.role === "Mafia"
+            )
+            .forEach(
+                mafiaPlayer => {
+
+                    io.to(
+                        mafiaPlayer.id
+                    ).emit(
+                        "chatMessage",
+                        {
+                            name: player.name,
+                            message
+                        }
+                    );
+
+                }
             );
 
-        if (
-            allowedRole &&
-            player.role === allowedRole
-        ) {
-            sendPrivateRoleChat(
-                game,
-                allowedRole,
-                player,
-                message
-            );
-        }
+        return;
     }
+
+
+    /* DOCTOR CHAT */
+
+    if (
+        game.nightStep === "doctor" &&
+        player.role === "Doctor"
+    ) {
+
+        game.players
+            .filter(
+                p =>
+                    p.alive &&
+                    p.role === "Doctor"
+            )
+            .forEach(
+                doctorPlayer => {
+
+                    io.to(
+                        doctorPlayer.id
+                    ).emit(
+                        "chatMessage",
+                        {
+                            name: player.name,
+                            message
+                        }
+                    );
+
+                }
+            );
+
+        return;
+    }
+
+
+    /* DETECTIVE CHAT */
+
+    if (
+        game.nightStep === "detective" &&
+        player.role === "Detective"
+    ) {
+
+        game.players
+            .filter(
+                p =>
+                    p.alive &&
+                    p.role === "Detective"
+            )
+            .forEach(
+                detectivePlayer => {
+
+                    io.to(
+                        detectivePlayer.id
+                    ).emit(
+                        "chatMessage",
+                        {
+                            name: player.name,
+                            message
+                        }
+                    );
+
+                }
+            );
+
+        return;
+    }
+
+
+    socket.emit(
+        "errorMessage",
+        "💤 You cannot chat during this night phase."
+    );
 }
 
-io.on("connection", socket => {
 
-    socket.on("createGame", data => {
+/* =====================================================
+   SOCKET CONNECTION
+===================================================== */
 
-        const name =
-            String(data.name || "")
-                .trim()
-                .slice(0, 20);
+io.on(
+    "connection",
+    socket => {
 
-        if (!name) {
-            socket.emit(
-                "errorMessage",
-                "Enter a name first."
-            );
-
-            return;
-        }
-
-        const code = createRoomCode();
-
-        const game = {
-            code,
-            host: socket.id,
-
-            players: [
-                {
-                    id: socket.id,
-                    name,
-                    role: null,
-                    alive: true,
-                    hasVoted: false
-                }
-            ],
-
-            phase: "lobby",
-            round: 0,
-            nightStep: null,
-
-            votes: {},
-
-            nightActions: {
-                mafia: {},
-                mafiaTarget: null,
-                doctor: null,
-                detective: null
-            },
-
-            timer: null,
-            timeLeft: 0
-        };
-
-        games[code] = game;
-
-        socket.join(code);
-
-        socket.emit("gameCreated", {
-            code,
-            host: true
-        });
-
-        sendPlayers(code);
-
-        sendSystemMessage(
-            code,
-            `${name} created the game.`
-        );
-    });
-
-    socket.on("joinGame", data => {
-
-        const code =
-            String(data.code || "")
-                .trim()
-                .toUpperCase();
-
-        const name =
-            String(data.name || "")
-                .trim()
-                .slice(0, 20);
-
-        const game = getGame(code);
-
-        if (!game) {
-            socket.emit(
-                "errorMessage",
-                "That room does not exist."
-            );
-
-            return;
-        }
-
-        if (game.phase !== "lobby") {
-            socket.emit(
-                "errorMessage",
-                "That game has already started."
-            );
-
-            return;
-        }
-
-        if (game.players.length >= 12) {
-            socket.emit(
-                "errorMessage",
-                "That room is full."
-            );
-
-            return;
-        }
-
-        if (!name) {
-            socket.emit(
-                "errorMessage",
-                "Enter a name first."
-            );
-
-            return;
-        }
-
-        const duplicate =
-            game.players.some(
-                player =>
-                    player.name.toLowerCase() ===
-                    name.toLowerCase()
-            );
-
-        if (duplicate) {
-            socket.emit(
-                "errorMessage",
-                "That name is already being used."
-            );
-
-            return;
-        }
-
-        game.players.push({
-            id: socket.id,
-            name,
-            role: null,
-            alive: true,
-            hasVoted: false
-        });
-
-        socket.join(code);
-
-        socket.emit("gameJoined", {
-            code,
-            host: false
-        });
-
-        sendPlayers(code);
-
-        sendSystemMessage(
-            code,
-            `${name} joined the game.`
-        );
-
-        io.to(code).emit("hostUpdate", {
-            hostId: game.host
-        });
-    });
-
-    socket.on("startGame", data => {
-
-        const game = getGame(data.code);
-
-        if (!game) return;
-
-        if (game.host !== socket.id) return;
-
-        if (game.phase !== "lobby") return;
-
-        if (game.players.length < 4) {
-            socket.emit(
-                "errorMessage",
-                "You need at least 4 players."
-            );
-
-            return;
-        }
-
-        startGame(data.code);
-    });
-
-    socket.on("nightAction", data => {
-
-        if (data.step === "mafia") {
-            mafiaAction(socket, data);
-        }
-
-        if (data.step === "doctor") {
-            doctorAction(socket, data);
-        }
-
-        if (data.step === "detective") {
-            detectiveAction(socket, data);
-        }
-    });
-
-    socket.on("mafiaAction", data => {
-        mafiaAction(socket, data);
-    });
-
-    socket.on("doctorAction", data => {
-        doctorAction(socket, data);
-    });
-
-    socket.on("detectiveAction", data => {
-        detectiveAction(socket, data);
-    });
-
-    socket.on("requestVoteTargets", data => {
-
-        const game = getGame(data.code);
-
-        if (!game) return;
-
-        if (game.phase !== "day") return;
-
-        sendVoteTargets(socket, game);
-    });
-
-    socket.on("vote", data => {
-        vote(socket, data);
-    });
-
-    socket.on("chat", data => {
-        handleChat(socket, data);
-    });
-
-    socket.on("disconnect", () => {
-
-        let foundGame = null;
-
-        for (const code of Object.keys(games)) {
-
-            const game = games[code];
-
-            const player = getPlayer(
-                game,
-                socket.id
-            );
-
-            if (player) {
-                foundGame = game;
-                break;
-            }
-        }
-
-        if (!foundGame) return;
-
-        const game = foundGame;
-
-        const player = getPlayer(
-            game,
+        console.log(
+            "Player connected:",
             socket.id
         );
 
-        if (!player) return;
 
-        if (game.phase === "lobby") {
+        /* =============================================
+           CREATE GAME
+        ============================================= */
 
-            game.players =
-                game.players.filter(
-                    p => p.id !== socket.id
-                );
+        socket.on(
+            "createGame",
+            name => {
 
-            if (game.host === socket.id) {
+                name =
+                    String(
+                        name || ""
+                    )
+                    .trim()
+                    .substring(0, 20);
 
-                if (game.players.length > 0) {
-                    game.host =
-                        game.players[0].id;
-                } else {
-                    delete games[game.code];
-                    return;
-                }
-            }
+                if (!name) {
 
-            sendPlayers(game.code);
-
-            io.to(game.code).emit(
-                "hostUpdate",
-                {
-                    hostId: game.host
-                }
-            );
-
-            sendSystemMessage(
-                game.code,
-                `${player.name} left the lobby.`
-            );
-
-            return;
-        }
-
-        if (
-            game.phase === "day" ||
-            game.phase === "night"
-        ) {
-
-            player.alive = false;
-
-            sendSystemMessage(
-                game.code,
-                `${player.name} disconnected and is now out of the game.`
-            );
-
-            sendPlayers(game.code);
-
-            if (checkWinner(game.code)) {
-                return;
-            }
-
-            if (
-                game.phase === "night" &&
-                game.nightStep === "mafia"
-            ) {
-
-                const livingMafia =
-                    game.players.filter(
-                        p =>
-                            p.alive &&
-                            p.role === "Mafia"
+                    socket.emit(
+                        "errorMessage",
+                        "Enter a name."
                     );
 
-                const submitted =
-                    Object.keys(
-                        game.nightActions.mafia
-                    ).length;
+                    return;
+                }
+
+                const code =
+                    createRoomCode();
+
+                games[code] = {
+
+                    host:
+                        socket.id,
+
+                    players: [
+                        {
+                            id:
+                                socket.id,
+
+                            name,
+
+                            alive:
+                                true,
+
+                            role:
+                                null,
+
+                            hasVoted:
+                                false
+                        }
+                    ],
+
+                    phase:
+                        "lobby",
+
+                    round:
+                        0,
+
+                    nightStep:
+                        null,
+
+                    votes:
+                        {},
+
+                    nightActions:
+                        {},
+
+                    timer:
+                        null,
+
+                    timeLeft:
+                        0
+                };
+
+                socket.join(code);
+
+                socket.data.room =
+                    code;
+
+                socket.emit(
+                    "gameCreated",
+                    {
+                        code
+                    }
+                );
+
+                sendPlayers(code);
+
+            }
+        );
+
+
+        /* =============================================
+           JOIN GAME
+        ============================================= */
+
+        socket.on(
+            "joinGame",
+            data => {
+
+                const code =
+                    String(
+                        data.code || ""
+                    )
+                    .trim()
+                    .toUpperCase();
+
+                const name =
+                    String(
+                        data.name || ""
+                    )
+                    .trim()
+                    .substring(0, 20);
+
+                const game =
+                    getGame(code);
+
+                if (!game) {
+
+                    socket.emit(
+                        "errorMessage",
+                        "That room does not exist."
+                    );
+
+                    return;
+                }
 
                 if (
-                    livingMafia.length === 0 ||
-                    submitted >= livingMafia.length
+                    game.phase !== "lobby"
                 ) {
-                    finishMafiaPhase(game.code);
-                }
-            }
-        }
-    });
-});
 
-server.listen(PORT, () => {
-    console.log(
-        `Global Mafia running on port ${PORT}`
-    );
-});
+                    socket.emit(
+                        "errorMessage",
+                        "That game has already started."
+                    );
+
+                    return;
+                }
+
+                if (
+                    game.players.length >= 12
+                ) {
+
+                    socket.emit(
+                        "errorMessage",
+                        "That room is full."
+                    );
+
+                    return;
+                }
+
+                if (!name) {
+
+                    socket.emit(
+                        "errorMessage",
+                        "Enter a name."
+                    );
+
+                    return;
+                }
+
+                const duplicate =
+                    game.players.some(
+                        player =>
+                            player.name.toLowerCase() ===
+                            name.toLowerCase()
+                    );
+
+                if (duplicate) {
+
+                    socket.emit(
+                        "errorMessage",
+                        "That name is already being used."
+                    );
+
+                    return;
+                }
+
+                game.players.push(
+                    {
+                        id:
+                            socket.id,
+
+                        name,
+
+                        alive:
+                            true,
+
+                        role:
+                            null,
+
+                        hasVoted:
+                            false
+                    }
+                );
+
+                socket.join(code);
+
+                socket.data.room =
+                    code;
+
+                socket.emit(
+                    "gameJoined",
+                    {
+                        code
+                    }
+                );
+
+                sendPlayers(code);
+
+            }
+        );
+
+
+        /* =============================================
+           START GAME
+        ============================================= */
+
+        socket.on(
+            "startGame",
+            code => {
+
+                const game =
+                    getGame(code);
+
+                if (!game) return;
+
+                if (
+                    game.host !==
+                    socket.id
+                ) {
+                    return;
+                }
+
+                if (
+                    game.players.length < 4
+                ) {
+
+                    socket.emit(
+                        "errorMessage",
+                        "You need at least 4 players."
+                    );
+
+                    return;
+                }
+
+                startGame(code);
+
+            }
+        );
+
+
+        /* =============================================
+           MAFIA
+        ============================================= */
+
+        socket.on(
+            "mafiaAction",
+            data => {
+
+                mafiaAction(
+                    socket,
+                    data
+                );
+
+            }
+        );
+
+
+        /* =============================================
+           DOCTOR
+        ============================================= */
+
+        socket.on(
+            "doctorAction",
+            data => {
+
+                doctorAction(
+                    socket,
+                    data
+                );
+
+            }
+        );
+
+
+        /* =============================================
+           DETECTIVE
+        ============================================= */
+
+        socket.on(
+            "detectiveAction",
+            data => {
+
+                detectiveAction(
+                    socket,
+                    data
+                );
+
+            }
+        );
+
+
+        /* =============================================
+           OLD NIGHT ACTION SUPPORT
+        ============================================= */
+
+        socket.on(
+            "nightAction",
+            data => {
+
+                const game =
+                    getGame(
+                        data.code
+                    );
+
+                if (!game) return;
+
+                if (
+                    game.nightStep ===
+                    "mafia"
+                ) {
+
+                    mafiaAction(
+                        socket,
+                        data
+                    );
+
+                } else if (
+                    game.nightStep ===
+                    "doctor"
+                ) {
+
+                    doctorAction(
+                        socket,
+                        data
+                    );
+
+                } else if (
+                    game.nightStep ===
+                    "detective"
+                ) {
+
+                    detectiveAction(
+                        socket,
+                        data
+                    );
+
+                }
+
+            }
+        );
+
+
+        /* =============================================
+           VOTE TARGETS
+        ============================================= */
+
+        socket.on(
+            "requestVoteTargets",
+            code => {
+
+                const game =
+                    getGame(code);
+
+                if (!game) return;
+
+                if (
+                    game.phase !== "day"
+                ) {
+                    return;
+                }
+
+                const player =
+                    getPlayer(
+                        game,
+                        socket.id
+                    );
+
+                if (
+                    !player ||
+                    !player.alive
+                ) {
+                    return;
+                }
+
+                /*
+                   If the player already voted,
+                   don't give them new targets.
+                */
+
+                if (
+                    player.hasVoted
+                ) {
+                    return;
+                }
+
+                socket.emit(
+                    "voteTargets",
+                    publicPlayers(game)
+                );
+
+            }
+        );
+
+
+        /* =============================================
+           VOTE
+        ============================================= */
+
+        socket.on(
+            "vote",
+            data => {
+
+                vote(
+                    socket,
+                    data
+                );
+
+            }
+        );
+
+
+        /* =============================================
+           CHAT
+        ============================================= */
+
+        socket.on(
+            "chat",
+            data => {
+
+                sendChat(
+                    socket,
+                    data
+                );
+
+            }
+        );
+
+
+        /* =============================================
+           DISCONNECT
+        ============================================= */
+
+        socket.on(
+            "disconnect",
+            () => {
+
+                console.log(
+                    "Player disconnected:",
+                    socket.id
+                );
+
+                const code =
+                    socket.data.room;
+
+                if (!code) return;
+
+                const game =
+                    getGame(code);
+
+                if (!game) return;
+
+                const player =
+                    getPlayer(
+                        game,
+                        socket.id
+                    );
+
+                if (!player) return;
+
+
+                /* LOBBY */
+
+                if (
+                    game.phase === "lobby"
+                ) {
+
+                    game.players =
+                        game.players.filter(
+                            p =>
+                                p.id !==
+                                socket.id
+                        );
+
+                    if (
+                        game.host ===
+                        socket.id
+                    ) {
+
+                        if (
+                            game.players.length > 0
+                        ) {
+
+                            game.host =
+                                game.players[0].id;
+
+                        }
+
+                    }
+
+                    if (
+                        game.players.length === 0
+                    ) {
+
+                        delete games[code];
+
+                        return;
+                    }
+
+                    sendPlayers(code);
+
+                    return;
+                }
+
+
+                /* ACTIVE GAME */
+
+                player.alive = false;
+
+                sendSystemMessage(
+                    code,
+                    `⚠️ ${player.name} disconnected.`
+                );
+
+                sendPlayers(code);
+
+                if (
+                    game.phase !==
+                    "ended"
+                ) {
+
+                    checkWinner(code);
+
+                }
+
+            }
+        );
+
+    }
+);
+
+
+/* =====================================================
+   SERVER START
+===================================================== */
+
+server.listen(
+    PORT,
+    () => {
+
+        console.log(
+            `🌎 Global Mafia running on port ${PORT}`
+        );
+
+    }
+);
