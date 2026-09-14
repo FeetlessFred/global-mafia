@@ -1,662 +1,1019 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
 
-<meta charset="UTF-8">
+    <meta charset="UTF-8">
 
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
->
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-<title>Global Mafia</title>
+    <title>Global Mafia</title>
 
-<style>
+    <script src="/socket.io/socket.io.js"></script>
 
-* {
-    box-sizing: border-box;
-}
+    <style>
 
-body {
+        * {
+            box-sizing: border-box;
+        }
 
-    margin: 0;
+        body {
+            margin: 0;
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
 
-    min-height: 100vh;
+            background:
+                linear-gradient(
+                    135deg,
+                    #080812,
+                    #15152b,
+                    #080812
+                );
 
-    font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
+            color: white;
 
-    background:
-        radial-gradient(
-            circle at top,
-            #252525,
-            #090909 70%
-        );
+            min-height: 100vh;
+        }
 
-    color: white;
-}
 
-button,
-input {
+        button,
+        input {
+            font-family: inherit;
+        }
 
-    font: inherit;
-}
 
-button {
+        button {
+            cursor: pointer;
+        }
 
-    border: 0;
 
-    border-radius: 10px;
+        /* ==========================================
+           GENERAL
+        ========================================== */
 
-    padding: 13px 20px;
+        .hidden {
+            display: none !important;
+        }
 
-    cursor: pointer;
 
-    font-weight: bold;
+        .screen {
+            min-height: 100vh;
 
-    transition:
-        transform 0.15s,
-        opacity 0.15s;
-}
+            display: flex;
 
-button:hover {
+            justify-content: center;
 
-    transform: translateY(-2px);
+            align-items: center;
 
-    opacity: 0.9;
-}
+            padding: 20px;
+        }
 
-button:disabled {
 
-    cursor: not-allowed;
+        .card {
+            background:
+                rgba(25, 25, 45, 0.95);
 
-    opacity: 0.5;
+            border:
+                1px solid
+                rgba(255, 255, 255, 0.1);
 
-    transform: none;
-}
+            border-radius: 20px;
 
-input {
+            padding: 30px;
 
-    width: 100%;
+            width: 100%;
 
-    padding: 14px;
+            max-width: 520px;
 
-    border-radius: 10px;
+            box-shadow:
+                0 20px 60px
+                rgba(0, 0, 0, 0.45);
+        }
 
-    border: 1px solid #444;
 
-    background: #181818;
+        h1 {
+            text-align: center;
 
-    color: white;
+            font-size: 42px;
 
-    outline: none;
-}
+            margin-top: 0;
 
-input:focus {
+            margin-bottom: 8px;
+        }
 
-    border-color: #888;
-}
 
-.hidden {
+        h2 {
+            margin-top: 0;
+        }
 
-    display: none !important;
-}
 
+        .subtitle {
+            text-align: center;
 
-/* APP */
+            color: #aaa;
 
-.app {
+            margin-bottom: 30px;
+        }
 
-    width: min(1000px, 94%);
 
-    margin: auto;
+        input {
+            width: 100%;
 
-    padding: 30px 0 60px;
-}
+            padding: 14px;
 
+            margin-bottom: 12px;
 
-/* HEADER */
+            border-radius: 10px;
 
-.logo {
+            border:
+                1px solid
+                #444;
 
-    text-align: center;
+            background: #10101c;
 
-    margin-bottom: 30px;
-}
+            color: white;
 
-.logo h1 {
+            font-size: 16px;
 
-    font-size: clamp(40px, 8vw, 72px);
+            outline: none;
+        }
 
-    margin: 0;
 
-    letter-spacing: -3px;
-}
+        input:focus {
+            border-color: #7777ff;
+        }
 
-.logo p {
 
-    color: #aaa;
+        button {
+            border: none;
 
-    margin-top: 8px;
-}
+            border-radius: 10px;
 
+            padding: 13px 18px;
 
-/* CARDS */
+            font-size: 16px;
 
-.card {
+            font-weight: bold;
 
-    background: rgba(25,25,25,0.94);
+            background: #5865f2;
 
-    border: 1px solid #333;
+            color: white;
 
-    border-radius: 18px;
+            transition:
+                transform 0.15s,
+                opacity 0.15s;
+        }
 
-    padding: 25px;
 
-    box-shadow:
-        0 20px 60px
-        rgba(0,0,0,0.35);
-}
+        button:hover {
+            transform: translateY(-1px);
 
+            opacity: 0.9;
+        }
 
-/* MENU */
 
-.menu {
+        button:disabled {
+            opacity: 0.4;
 
-    max-width: 500px;
+            cursor: not-allowed;
 
-    margin: auto;
-}
+            transform: none;
+        }
 
-.menu input {
 
-    margin-bottom: 12px;
-}
+        .secondary {
+            background: #303044;
+        }
 
-.primary {
 
-    width: 100%;
+        .danger {
+            background: #c73535;
+        }
 
-    background: white;
 
-    color: black;
+        .success {
+            background: #269c62;
+        }
 
-    margin-bottom: 10px;
-}
 
-.secondary {
+        .full {
+            width: 100%;
+        }
 
-    background: #292929;
 
-    color: white;
-}
+        .button-row {
+            display: flex;
 
-.joinRow {
+            gap: 10px;
 
-    display: flex;
+            margin-top: 10px;
+        }
 
-    gap: 8px;
-}
 
-.joinRow button {
+        .button-row button {
+            flex: 1;
+        }
 
-    white-space: nowrap;
-}
 
-.error {
+        /* ==========================================
+           LOBBY
+        ========================================== */
 
-    color: #ff7777;
+        #lobbyScreen {
+            align-items: flex-start;
 
-    min-height: 25px;
+            padding-top: 60px;
+        }
 
-    margin-top: 15px;
-}
 
+        .lobby-card {
+            max-width: 650px;
+        }
 
-/* LOBBY */
 
-.room {
+        .room-code {
+            font-size: 38px;
 
-    text-align: center;
+            letter-spacing: 7px;
 
-    margin-bottom: 25px;
-}
+            text-align: center;
 
-.roomCode {
+            font-weight: bold;
 
-    font-size: 55px;
+            padding: 20px;
 
-    font-weight: bold;
+            background: #10101c;
 
-    letter-spacing: 8px;
+            border-radius: 15px;
 
-    margin: 10px 0;
+            margin:
+                15px 0 25px;
+        }
 
-    color: #fff;
-}
 
-.players {
+        .players-list {
+            display: flex;
 
-    display: grid;
+            flex-direction: column;
 
-    grid-template-columns:
-        repeat(auto-fit, minmax(160px, 1fr));
+            gap: 8px;
 
-    gap: 10px;
+            margin-top: 15px;
 
-    margin: 20px 0;
-}
+            margin-bottom: 20px;
+        }
 
-.player {
 
-    background: #202020;
+        .player {
+            display: flex;
 
-    border: 1px solid #383838;
+            justify-content: space-between;
 
-    border-radius: 12px;
+            align-items: center;
 
-    padding: 14px;
+            background: #10101c;
 
-    text-align: left;
-}
+            padding: 12px 15px;
 
-.player.dead {
+            border-radius: 10px;
+        }
 
-    opacity: 0.45;
-}
 
-.playerName {
+        .player.dead {
+            opacity: 0.45;
 
-    font-weight: bold;
-}
+            text-decoration: line-through;
+        }
 
-.host {
 
-    color: #ffd166;
+        .host-label {
+            color: #ffd166;
 
-    font-size: 12px;
-}
+            font-size: 13px;
+        }
 
 
-/* GAME */
+        .player-count {
+            color: #aaa;
 
-.gameGrid {
+            margin-bottom: 10px;
+        }
 
-    display: grid;
 
-    grid-template-columns:
-        1fr 320px;
+        /* ==========================================
+           GAME
+        ========================================== */
 
-    gap: 20px;
-}
+        #gameScreen {
+            display: none;
 
-@media (max-width: 750px) {
+            min-height: 100vh;
 
-    .gameGrid {
+            padding: 15px;
 
-        grid-template-columns: 1fr;
-    }
-}
+            align-items: stretch;
+        }
 
 
-/* STATUS */
+        .game-container {
+            width: 100%;
 
-.status {
+            max-width: 1400px;
 
-    text-align: center;
+            margin: auto;
 
-    padding: 20px;
+            display: grid;
 
-    border-radius: 15px;
+            grid-template-columns:
+                250px
+                1fr
+                320px;
 
-    background: #191919;
+            gap: 15px;
 
-    border: 1px solid #333;
+            min-height: calc(100vh - 30px);
+        }
 
-    margin-bottom: 20px;
-}
 
-.phase {
+        .panel {
+            background:
+                rgba(25, 25, 45, 0.96);
 
-    font-size: 34px;
+            border:
+                1px solid
+                rgba(255,255,255,0.08);
 
-    font-weight: bold;
-}
+            border-radius: 18px;
 
-.timer {
+            padding: 18px;
 
-    font-size: 26px;
+            overflow: hidden;
+        }
 
-    margin-top: 8px;
 
-    color: #aaa;
-}
+        /* ==========================================
+           LEFT PANEL
+        ========================================== */
 
-.role {
+        .players-panel {
+            display: flex;
 
-    margin-top: 15px;
+            flex-direction: column;
+        }
 
-    font-size: 20px;
 
-    padding: 12px;
+        .players-panel h2 {
+            margin-bottom: 5px;
+        }
 
-    border-radius: 10px;
 
-    background: #242424;
-}
+        #gamePlayers {
+            display: flex;
 
+            flex-direction: column;
 
-/* ACTIONS */
+            gap: 8px;
 
-.actions {
+            overflow-y: auto;
 
-    margin-top: 20px;
-}
+            margin-top: 12px;
+        }
 
-.actionTitle {
 
-    margin-top: 0;
-}
+        .game-player {
+            background: #10101c;
 
-.targetButton {
+            border-radius: 10px;
 
-    width: 100%;
+            padding: 10px;
 
-    margin: 6px 0;
+            display: flex;
 
-    background: #292929;
+            flex-direction: column;
 
-    color: white;
+            gap: 3px;
+        }
 
-    border: 1px solid #444;
-}
 
-.targetButton:hover {
+        .game-player-name {
+            font-weight: bold;
+        }
 
-    background: #3b3b3b;
-}
 
+        .game-player-status {
+            font-size: 12px;
 
-/* CHAT */
+            color: #8f8f9f;
+        }
 
-.chat {
 
-    height: 350px;
+        .alive {
+            border-left:
+                4px solid
+                #3ddc84;
+        }
 
-    overflow-y: auto;
 
-    background: #101010;
+        .dead {
+            border-left:
+                4px solid
+                #777;
+        }
 
-    border: 1px solid #333;
 
-    border-radius: 12px;
+        /* ==========================================
+           CENTER
+        ========================================== */
 
-    padding: 12px;
+        .main-panel {
+            display: flex;
 
-    text-align: left;
+            flex-direction: column;
 
-    margin-bottom: 10px;
-}
+            min-width: 0;
+        }
 
-.chatMessage {
 
-    padding: 7px 5px;
+        .game-header {
+            display: flex;
 
-    border-bottom: 1px solid #222;
+            justify-content: space-between;
 
-    overflow-wrap: anywhere;
-}
+            align-items: center;
 
-.chatName {
+            gap: 15px;
 
-    font-weight: bold;
-}
+            margin-bottom: 15px;
+        }
 
-.chatInput {
 
-    display: flex;
+        .phase-box {
+            flex: 1;
 
-    gap: 7px;
-}
+            background: #10101c;
 
-.chatInput button {
+            border-radius: 14px;
 
-    background: white;
+            padding: 15px;
+        }
 
-    color: black;
-}
 
+        .phase-title {
+            font-size: 24px;
 
-/* RESULT */
+            font-weight: bold;
+        }
 
-.result {
 
-    padding: 15px;
+        .phase-description {
+            color: #aaa;
 
-    border-radius: 12px;
+            margin-top: 4px;
+        }
 
-    background: #222;
 
-    margin-top: 15px;
+        .timer {
+            min-width: 90px;
 
-    min-height: 50px;
+            text-align: center;
 
-    font-size: 17px;
-}
+            background: #10101c;
 
+            border-radius: 14px;
 
-/* GAME OVER */
+            padding: 15px;
+        }
 
-.gameOver {
 
-    text-align: center;
+        .timer-number {
+            font-size: 30px;
 
-    padding: 25px;
+            font-weight: bold;
+        }
 
-    background: #181818;
 
-    border-radius: 15px;
+        .role-box {
+            background:
+                linear-gradient(
+                    135deg,
+                    #26263f,
+                    #17172a
+                );
 
-    margin-top: 20px;
-}
+            border-radius: 15px;
 
-.winner {
+            padding: 20px;
 
-    font-size: 42px;
+            margin-bottom: 15px;
 
-    font-weight: bold;
+            text-align: center;
+        }
 
-    margin: 10px;
-}
 
-.roleList {
+        .role-name {
+            font-size: 30px;
 
-    text-align: left;
+            font-weight: bold;
 
-    max-width: 400px;
+            margin-bottom: 6px;
+        }
 
-    margin: 20px auto;
-}
 
-.roleItem {
+        .role-description {
+            color: #aaa;
 
-    padding: 9px;
+            line-height: 1.4;
+        }
 
-    border-bottom: 1px solid #333;
-}
 
+        .action-box {
+            background: #10101c;
 
-/* DEAD */
+            border-radius: 15px;
 
-.deadNotice {
+            padding: 18px;
 
-    text-align: center;
+            margin-bottom: 15px;
+        }
 
-    background: #321818;
 
-    border: 1px solid #663333;
+        .action-title {
+            font-size: 20px;
 
-    border-radius: 12px;
+            font-weight: bold;
 
-    padding: 14px;
+            margin-bottom: 8px;
+        }
 
-    margin-top: 15px;
-}
 
-</style>
+        .action-description {
+            color: #aaa;
+
+            margin-bottom: 15px;
+        }
+
+
+        #targets {
+            display: grid;
+
+            grid-template-columns:
+                repeat(
+                    auto-fit,
+                    minmax(
+                        130px,
+                        1fr
+                    )
+                );
+
+            gap: 10px;
+        }
+
+
+        .target-button {
+            background: #292940;
+
+            border:
+                1px solid
+                #45455f;
+
+            padding: 13px;
+
+            border-radius: 10px;
+
+            color: white;
+
+            font-weight: bold;
+        }
+
+
+        .target-button:hover {
+            background: #3b3b5c;
+        }
+
+
+        .target-button.selected {
+            background: #5865f2;
+
+            border-color: #8b91ff;
+        }
+
+
+        .messages {
+            flex: 1;
+
+            min-height: 180px;
+
+            background: #10101c;
+
+            border-radius: 15px;
+
+            padding: 15px;
+
+            overflow-y: auto;
+
+            margin-bottom: 10px;
+        }
+
+
+        .message {
+            margin-bottom: 9px;
+
+            line-height: 1.4;
+
+            word-wrap: break-word;
+        }
+
+
+        .message-name {
+            font-weight: bold;
+
+            color: #8d94ff;
+        }
+
+
+        .system-message {
+            color: #ffd166;
+
+            font-style: italic;
+
+            margin-bottom: 10px;
+        }
+
+
+        .chat-area {
+            display: flex;
+
+            gap: 8px;
+        }
+
+
+        .chat-area input {
+            margin: 0;
+
+            flex: 1;
+        }
+
+
+        .chat-area button {
+            width: 80px;
+        }
+
+
+        .chat-status {
+            font-size: 12px;
+
+            color: #999;
+
+            margin-top: 5px;
+
+            min-height: 16px;
+        }
+
+
+        /* ==========================================
+           RIGHT PANEL
+        ========================================== */
+
+        .info-panel {
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 15px;
+        }
+
+
+        .info-card {
+            background: #10101c;
+
+            border-radius: 14px;
+
+            padding: 15px;
+        }
+
+
+        .info-card h3 {
+            margin-top: 0;
+        }
+
+
+        .room-small {
+            font-size: 22px;
+
+            letter-spacing: 4px;
+
+            font-weight: bold;
+
+            text-align: center;
+        }
+
+
+        .rules {
+            color: #aaa;
+
+            line-height: 1.5;
+
+            font-size: 14px;
+        }
+
+
+        /* ==========================================
+           ERROR
+        ========================================== */
+
+        #errorBox {
+            background:
+                rgba(200, 45, 45, 0.18);
+
+            border:
+                1px solid
+                rgba(255, 80, 80, 0.4);
+
+            color: #ff9d9d;
+
+            padding: 12px;
+
+            border-radius: 10px;
+
+            margin-bottom: 12px;
+
+            display: none;
+        }
+
+
+        /* ==========================================
+           GAME OVER
+        ========================================== */
+
+        #gameOverOverlay {
+            position: fixed;
+
+            inset: 0;
+
+            background:
+                rgba(0, 0, 0, 0.82);
+
+            display: none;
+
+            justify-content: center;
+
+            align-items: center;
+
+            padding: 20px;
+
+            z-index: 100;
+        }
+
+
+        .game-over-card {
+            background: #19192d;
+
+            width: 100%;
+
+            max-width: 600px;
+
+            border-radius: 20px;
+
+            padding: 30px;
+
+            text-align: center;
+
+            max-height: 90vh;
+
+            overflow-y: auto;
+        }
+
+
+        .winner {
+            font-size: 40px;
+
+            font-weight: bold;
+
+            margin-bottom: 20px;
+        }
+
+
+        .role-reveal {
+            display: flex;
+
+            justify-content: space-between;
+
+            padding: 10px 12px;
+
+            background: #10101c;
+
+            border-radius: 8px;
+
+            margin-bottom: 6px;
+        }
+
+
+        /* ==========================================
+           RESPONSIVE
+        ========================================== */
+
+        @media (max-width: 1050px) {
+
+            .game-container {
+                grid-template-columns:
+                    200px
+                    1fr;
+            }
+
+            .info-panel {
+                display: none;
+            }
+
+        }
+
+
+        @media (max-width: 700px) {
+
+            #gameScreen {
+                padding: 8px;
+            }
+
+
+            .game-container {
+                display: flex;
+
+                flex-direction: column;
+
+                min-height: calc(100vh - 16px);
+            }
+
+
+            .players-panel {
+                max-height: 200px;
+            }
+
+
+            #gamePlayers {
+                display: grid;
+
+                grid-template-columns:
+                    repeat(
+                        auto-fit,
+                        minmax(
+                            130px,
+                            1fr
+                        )
+                    );
+            }
+
+
+            .game-header {
+                flex-direction: column;
+
+                align-items: stretch;
+            }
+
+
+            .timer {
+                width: 100%;
+            }
+
+
+            h1 {
+                font-size: 32px;
+            }
+
+        }
+
+    </style>
 
 </head>
+
 
 <body>
 
 
-<div class="app">
+<!-- =====================================================
+     HOME SCREEN
+===================================================== -->
+
+<div
+    id="homeScreen"
+    class="screen"
+>
+
+    <div class="card">
+
+        <h1>🌎 Mafia</h1>
+
+        <div class="subtitle">
+            Global multiplayer Mafia
+        </div>
 
 
-<!-- ============================================= -->
-<!-- MENU -->
-<!-- ============================================= -->
+        <div id="errorBox"></div>
 
-<section id="menu">
-
-    <div class="logo">
-
-        <h1>🕵️</h1>
-
-        <h1>GLOBAL MAFIA</h1>
-
-        <p>
-            Lie. Investigate. Survive.
-        </p>
-
-    </div>
-
-
-    <div class="card menu">
 
         <input
             id="nameInput"
-            placeholder="Enter your username"
+            type="text"
             maxlength="20"
+            placeholder="Your name"
         >
 
 
         <button
-            class="primary"
-            onclick="createGame()"
+            id="createButton"
+            class="full"
         >
-            🌎 CREATE GAME
+            🎮 Create Game
         </button>
 
 
-        <div style="
-            text-align:center;
-            margin:15px;
-            color:#777;
-        ">
+        <div
+            style="
+                text-align:center;
+                color:#777;
+                margin:15px 0;
+            "
+        >
             OR
         </div>
 
 
-        <div class="joinRow">
+        <input
+            id="roomInput"
+            type="text"
+            maxlength="5"
+            placeholder="Room code"
+        >
 
-            <input
-                id="codeInput"
-                placeholder="ROOM CODE"
-                maxlength="5"
-            >
 
-            <button
-                class="secondary"
-                onclick="joinGame()"
-            >
-                JOIN
-            </button>
+        <button
+            id="joinButton"
+            class="full secondary"
+        >
+            🚪 Join Game
+        </button>
 
+    </div>
+
+</div>
+
+
+
+<!-- =====================================================
+     LOBBY SCREEN
+===================================================== -->
+
+<div
+    id="lobbyScreen"
+    class="screen hidden"
+>
+
+    <div class="card lobby-card">
+
+        <h1>🏠 Lobby</h1>
+
+        <div class="subtitle">
+            Give your friends the room code.
         </div>
 
 
         <div
-            id="error"
-            class="error"
-        ></div>
-
-    </div>
-
-</section>
-
-
-<!-- ============================================= -->
-<!-- LOBBY -->
-<!-- ============================================= -->
-
-<section
-    id="lobby"
-    class="hidden"
->
-
-    <div class="logo">
-
-        <h1>🕵️ LOBBY</h1>
-
-        <p>
-            Invite people from anywhere in the world.
-        </p>
-
-    </div>
-
-
-    <div class="card">
-
-        <div class="room">
-
-            <div>
-                ROOM CODE
-            </div>
-
-            <div
-                id="roomCode"
-                class="roomCode"
-            >
-                -----
-            </div>
-
-            <button
-                class="secondary"
-                onclick="copyRoomCode()"
-            >
-                📋 COPY CODE
-            </button>
-
+            id="lobbyRoomCode"
+            class="room-code"
+        >
+            -----
         </div>
 
 
-        <h2>
-            Players
-            (<span id="playerCount">0</span>/12)
-        </h2>
+        <div
+            id="lobbyPlayerCount"
+            class="player-count"
+        >
+            Players: 0 / 12
+        </div>
 
 
         <div
             id="lobbyPlayers"
-            class="players"
-        ></div>
+            class="players-list"
+        >
+        </div>
 
 
         <button
             id="startButton"
-            class="primary hidden"
-            onclick="startGame()"
+            class="full success"
         >
-            🚀 START GAME
+            ▶ Start Game
         </button>
 
 
         <p
-            id="waiting"
+            id="waitingText"
             style="
                 text-align:center;
                 color:#888;
@@ -667,944 +1024,1876 @@ input:focus {
 
     </div>
 
-</section>
+</div>
 
 
-<!-- ============================================= -->
-<!-- GAME -->
-<!-- ============================================= -->
 
-<section
-    id="game"
-    class="hidden"
+<!-- =====================================================
+     GAME SCREEN
+===================================================== -->
+
+<div
+    id="gameScreen"
 >
 
-    <div class="status">
+    <div class="game-container">
+
+
+        <!-- ==========================================
+             PLAYERS
+        =========================================== -->
 
         <div
-            id="phase"
-            class="phase"
+            class="panel players-panel"
         >
-            🌙 NIGHT
+
+            <h2>👥 Players</h2>
+
+            <div
+                id="gamePlayerCount"
+                class="player-count"
+            >
+                0 players
+            </div>
+
+            <div
+                id="gamePlayers"
+            >
+            </div>
+
         </div>
+
+
+
+        <!-- ==========================================
+             MAIN
+        =========================================== -->
 
         <div
-            id="timer"
-            class="timer"
+            class="panel main-panel"
         >
-            30
-        </div>
-
-        <div
-            id="role"
-            class="role"
-        >
-            Your role is loading...
-        </div>
-
-    </div>
 
 
-    <div class="gameGrid">
+            <div class="game-header">
 
+                <div class="phase-box">
 
-        <!-- LEFT -->
+                    <div
+                        id="phaseTitle"
+                        class="phase-title"
+                    >
+                        Waiting...
+                    </div>
 
-        <div>
+                    <div
+                        id="phaseDescription"
+                        class="phase-description"
+                    >
+                        Loading...
+                    </div>
 
-            <div class="card">
-
-                <h2>
-                    🎮 Actions
-                </h2>
-
-                <div
-                    id="actions"
-                    class="actions"
-                >
-                    Wait...
                 </div>
 
-                <div
-                    id="result"
-                    class="result"
-                >
-                    Welcome to the game.
-                </div>
 
-                <div
-                    id="deadNotice"
-                    class="deadNotice hidden"
-                >
-                    💀 You have been eliminated.
-                    <br>
-                    You can watch, but you cannot
-                    vote or use normal chat.
+                <div class="timer">
+
+                    <div
+                        id="timerNumber"
+                        class="timer-number"
+                    >
+                        0
+                    </div>
+
+                    <div
+                        style="
+                            color:#888;
+                            font-size:12px;
+                        "
+                    >
+                        seconds
+                    </div>
+
                 </div>
 
             </div>
 
 
+
+            <!-- ROLE -->
+
             <div
-                id="gameOver"
-                class="gameOver hidden"
+                id="roleBox"
+                class="role-box"
             >
 
-                <div>
-                    GAME OVER
+                <div
+                    id="roleName"
+                    class="role-name"
+                >
+                    Your Role
                 </div>
 
                 <div
-                    id="winner"
-                    class="winner"
-                ></div>
+                    id="roleDescription"
+                    class="role-description"
+                >
+                    Waiting for the game...
+                </div>
+
+            </div>
+
+
+
+            <!-- ACTION -->
+
+            <div
+                id="actionBox"
+                class="action-box hidden"
+            >
 
                 <div
-                    id="roles"
-                    class="roleList"
-                ></div>
+                    id="actionTitle"
+                    class="action-title"
+                >
+                    Decision
+                </div>
+
+                <div
+                    id="actionDescription"
+                    class="action-description"
+                >
+                    Choose a player.
+                </div>
+
+
+                <div
+                    id="targets"
+                >
+                </div>
+
+            </div>
+
+
+
+            <!-- MESSAGES -->
+
+            <div
+                id="messages"
+                class="messages"
+            >
+            </div>
+
+
+
+            <!-- CHAT -->
+
+            <div
+                class="chat-area"
+            >
+
+                <input
+                    id="chatInput"
+                    type="text"
+                    maxlength="200"
+                    placeholder="Type a message..."
+                >
+
 
                 <button
-                    class="primary"
-                    onclick="location.reload()"
+                    id="chatButton"
                 >
-                    🔄 PLAY AGAIN
+                    Send
                 </button>
 
             </div>
 
-        </div>
-
-
-        <!-- RIGHT -->
-
-        <div class="card">
-
-            <h2>
-                👥 Players
-            </h2>
 
             <div
-                id="gamePlayers"
-                class="players"
-            ></div>
+                id="chatStatus"
+                class="chat-status"
+            >
+            </div>
 
         </div>
 
-    </div>
 
 
-    <!-- CHAT -->
-
-    <div
-        class="card"
-        style="margin-top:20px"
-    >
-
-        <h2>
-            💬 Chat
-        </h2>
+        <!-- ==========================================
+             INFO
+        =========================================== -->
 
         <div
-            id="chat"
-            class="chat"
-        ></div>
+            class="panel info-panel"
+        >
 
-        <div class="chatInput">
 
-            <input
-                id="chatInput"
-                placeholder="Type a message..."
-                maxlength="200"
-                onkeydown="chatKey(event)"
-            >
+            <div class="info-card">
 
-            <button
-                onclick="sendChat()"
-            >
-                SEND
-            </button>
+                <h3>🏠 Room</h3>
+
+                <div
+                    id="smallRoomCode"
+                    class="room-small"
+                >
+                    -----
+                </div>
+
+            </div>
+
+
+            <div class="info-card">
+
+                <h3>🎭 Your Role</h3>
+
+                <div
+                    id="sideRole"
+                    style="
+                        font-weight:bold;
+                        font-size:20px;
+                    "
+                >
+                    Unknown
+                </div>
+
+            </div>
+
+
+            <div class="info-card">
+
+                <h3>📜 Rules</h3>
+
+                <div class="rules">
+
+                    ☀️ During the day, everyone
+                    alive can talk.<br><br>
+
+                    🌙 At night, each role gets
+                    its own decision phase.<br><br>
+
+                    🔴 Mafia can secretly talk
+                    to other Mafia during their
+                    decision.<br><br>
+
+                    🩺 Doctors can privately talk
+                    to other Doctors during their
+                    decision.<br><br>
+
+                    🔎 Detectives can privately
+                    talk to other Detectives
+                    during their decision.<br><br>
+
+                    🗳️ During the day, vote for
+                    who you think is Mafia.
+
+                </div>
+
+            </div>
 
         </div>
 
     </div>
-
-</section>
 
 </div>
 
 
-<script src="/socket.io/socket.io.js"></script>
+
+<!-- =====================================================
+     GAME OVER
+===================================================== -->
+
+<div
+    id="gameOverOverlay"
+>
+
+    <div class="game-over-card">
+
+        <h1>🏆 Game Over</h1>
+
+
+        <div
+            id="winnerText"
+            class="winner"
+        >
+        </div>
+
+
+        <h2>Role Reveal</h2>
+
+
+        <div
+            id="roleReveal"
+        >
+        </div>
+
+
+        <button
+            class="full"
+            onclick="location.reload()"
+        >
+            🔄 Return to Main Menu
+        </button>
+
+    </div>
+
+</div>
+
+
 
 <script>
 
-const socket = io();
+
+// =====================================================
+// SOCKET
+// =====================================================
+
+const socket =
+    io();
+
+
+// =====================================================
+// GAME VARIABLES
+// =====================================================
 
 let roomCode = "";
 
-let myId = "";
-
 let myRole = "";
 
-let amHost = false;
+let myAlive = true;
 
-let alive = true;
+let isHost = false;
 
+let currentPhase = "";
 
-// ==================================================
-// GET MY SOCKET ID
-// ==================================================
+let currentNightStep = "";
 
-socket.on("connect", () => {
-
-    myId = socket.id;
-
-});
+let selectedTarget = null;
 
 
-// ==================================================
-// MENU
-// ==================================================
+// =====================================================
+// ELEMENTS
+// =====================================================
 
-function getName() {
-
-    return document
-        .getElementById("nameInput")
-        .value
-        .trim();
-}
-
-
-function createGame() {
-
-    const name = getName();
-
-    if (!name) {
-
-        showError(
-            "Enter a username first."
-        );
-
-        return;
-    }
-
-    socket.emit(
-        "createGame",
-        name
+const homeScreen =
+    document.getElementById(
+        "homeScreen"
     );
-}
 
-
-function joinGame() {
-
-    const name = getName();
-
-    const code =
-        document
-            .getElementById("codeInput")
-            .value
-            .trim()
-            .toUpperCase();
-
-    if (!name) {
-
-        showError(
-            "Enter a username first."
-        );
-
-        return;
-    }
-
-    if (code.length !== 5) {
-
-        showError(
-            "Enter the 5-character room code."
-        );
-
-        return;
-    }
-
-    socket.emit(
-        "joinGame",
-        {
-            name,
-            code
-        }
+const lobbyScreen =
+    document.getElementById(
+        "lobbyScreen"
     );
-}
 
+const gameScreen =
+    document.getElementById(
+        "gameScreen"
+    );
 
-function showError(message) {
+const errorBox =
+    document.getElementById(
+        "errorBox"
+    );
 
-    document
-        .getElementById("error")
-        .textContent = message;
-}
+const nameInput =
+    document.getElementById(
+        "nameInput"
+    );
 
+const roomInput =
+    document.getElementById(
+        "roomInput"
+    );
 
-// ==================================================
-// ROOM CREATED
-// ==================================================
+const createButton =
+    document.getElementById(
+        "createButton"
+    );
 
-socket.on("gameCreated", data => {
+const joinButton =
+    document.getElementById(
+        "joinButton"
+    );
 
-    roomCode = data.code;
+const startButton =
+    document.getElementById(
+        "startButton"
+    );
 
-    amHost = true;
+const lobbyRoomCode =
+    document.getElementById(
+        "lobbyRoomCode"
+    );
 
-    showLobby();
-
-    document
-        .getElementById("roomCode")
-        .textContent = roomCode;
-
-    updateStartButton();
-
-});
-
-
-socket.on("gameJoined", data => {
-
-    roomCode = data.code;
-
-    amHost = false;
-
-    showLobby();
-
-    document
-        .getElementById("roomCode")
-        .textContent = roomCode;
-
-    updateStartButton();
-
-});
-
-
-function showLobby() {
-
-    document
-        .getElementById("menu")
-        .classList.add("hidden");
-
-    document
-        .getElementById("lobby")
-        .classList.remove("hidden");
-
-}
-
-
-// ==================================================
-// LOBBY PLAYERS
-// ==================================================
-
-socket.on("playersUpdate", data => {
-
-    renderPlayers(
-        data.players,
+const lobbyPlayers =
+    document.getElementById(
         "lobbyPlayers"
     );
 
-    renderPlayers(
-        data.players,
+const lobbyPlayerCount =
+    document.getElementById(
+        "lobbyPlayerCount"
+    );
+
+const waitingText =
+    document.getElementById(
+        "waitingText"
+    );
+
+const gamePlayers =
+    document.getElementById(
         "gamePlayers"
     );
 
-    document
-        .getElementById("playerCount")
-        .textContent =
-        data.players.length;
+const gamePlayerCount =
+    document.getElementById(
+        "gamePlayerCount"
+    );
 
-    updateStartButton();
+const phaseTitle =
+    document.getElementById(
+        "phaseTitle"
+    );
 
-});
+const phaseDescription =
+    document.getElementById(
+        "phaseDescription"
+    );
+
+const timerNumber =
+    document.getElementById(
+        "timerNumber"
+    );
+
+const roleName =
+    document.getElementById(
+        "roleName"
+    );
+
+const roleDescription =
+    document.getElementById(
+        "roleDescription"
+    );
+
+const sideRole =
+    document.getElementById(
+        "sideRole"
+    );
+
+const actionBox =
+    document.getElementById(
+        "actionBox"
+    );
+
+const actionTitle =
+    document.getElementById(
+        "actionTitle"
+    );
+
+const actionDescription =
+    document.getElementById(
+        "actionDescription"
+    );
+
+const targets =
+    document.getElementById(
+        "targets"
+    );
+
+const messages =
+    document.getElementById(
+        "messages"
+    );
+
+const chatInput =
+    document.getElementById(
+        "chatInput"
+    );
+
+const chatButton =
+    document.getElementById(
+        "chatButton"
+    );
+
+const chatStatus =
+    document.getElementById(
+        "chatStatus"
+    );
+
+const smallRoomCode =
+    document.getElementById(
+        "smallRoomCode"
+    );
+
+const gameOverOverlay =
+    document.getElementById(
+        "gameOverOverlay"
+    );
+
+const winnerText =
+    document.getElementById(
+        "winnerText"
+    );
+
+const roleReveal =
+    document.getElementById(
+        "roleReveal"
+    );
 
 
-function renderPlayers(players, elementId) {
+// =====================================================
+// ERROR
+// =====================================================
 
-    const container =
-        document.getElementById(elementId);
+function showError(message) {
 
-    if (!container) return;
+    errorBox.textContent =
+        message;
 
-    container.innerHTML = "";
-
-    players.forEach(player => {
-
-        const div =
-            document.createElement("div");
-
-        div.className =
-            "player" +
-            (!player.alive
-                ? " dead"
-                : "");
-
-        const name =
-            document.createElement("div");
-
-        name.className =
-            "playerName";
-
-        name.textContent =
-            (player.alive
-                ? "🟢 "
-                : "💀 ") +
-            player.name;
-
-        div.appendChild(name);
-
-        container.appendChild(div);
-    });
+    errorBox.style.display =
+        "block";
 }
 
 
-function updateStartButton() {
+function clearError() {
 
-    const button =
-        document.getElementById(
-            "startButton"
+    errorBox.textContent = "";
+
+    errorBox.style.display =
+        "none";
+}
+
+
+// =====================================================
+// CREATE GAME
+// =====================================================
+
+createButton.onclick =
+    () => {
+
+        clearError();
+
+        const name =
+            nameInput.value.trim();
+
+
+        if (!name) {
+
+            showError(
+                "Enter your name first."
+            );
+
+            return;
+        }
+
+
+        socket.emit(
+            "createGame",
+            name
+        );
+    };
+
+
+// =====================================================
+// JOIN GAME
+// =====================================================
+
+joinButton.onclick =
+    () => {
+
+        clearError();
+
+        const name =
+            nameInput.value.trim();
+
+        const code =
+            roomInput.value.trim();
+
+
+        if (!name) {
+
+            showError(
+                "Enter your name first."
+            );
+
+            return;
+        }
+
+
+        if (!code) {
+
+            showError(
+                "Enter a room code."
+            );
+
+            return;
+        }
+
+
+        socket.emit(
+            "joinGame",
+            {
+                name,
+                code
+            }
+        );
+    };
+
+
+// =====================================================
+// GAME CREATED
+// =====================================================
+
+socket.on(
+    "gameCreated",
+    data => {
+
+        roomCode =
+            data.code;
+
+        isHost = true;
+
+        showLobby();
+    }
+);
+
+
+// =====================================================
+// GAME JOINED
+// =====================================================
+
+socket.on(
+    "gameJoined",
+    data => {
+
+        roomCode =
+            data.code;
+
+        isHost = false;
+
+        showLobby();
+    }
+);
+
+
+// =====================================================
+// SHOW LOBBY
+// =====================================================
+
+function showLobby() {
+
+    homeScreen.classList.add(
+        "hidden"
+    );
+
+    gameScreen.style.display =
+        "none";
+
+    lobbyScreen.classList.remove(
+        "hidden"
+    );
+
+
+    lobbyRoomCode.textContent =
+        roomCode;
+
+
+    smallRoomCode.textContent =
+        roomCode;
+}
+
+
+// =====================================================
+// PLAYERS UPDATE
+// =====================================================
+
+socket.on(
+    "playersUpdate",
+    data => {
+
+        updateLobbyPlayers(
+            data.players
         );
 
-    const waiting =
-        document.getElementById(
-            "waiting"
+        updateGamePlayers(
+            data.players
         );
 
-    if (amHost) {
+    }
+);
 
-        button.classList.remove(
+
+// =====================================================
+// LOBBY PLAYERS
+// =====================================================
+
+function updateLobbyPlayers(
+    players
+) {
+
+    lobbyPlayers.innerHTML =
+        "";
+
+
+    lobbyPlayerCount.textContent =
+        `Players: ${players.length} / 12`;
+
+
+    players.forEach(
+        (player, index) => {
+
+            const div =
+                document.createElement(
+                    "div"
+                );
+
+
+            div.className =
+                "player";
+
+
+            const name =
+                document.createElement(
+                    "span"
+                );
+
+
+            name.textContent =
+                player.name;
+
+
+            div.appendChild(
+                name
+            );
+
+
+            if (
+                index === 0
+            ) {
+
+                const host =
+                    document.createElement(
+                        "span"
+                    );
+
+
+                host.className =
+                    "host-label";
+
+
+                host.textContent =
+                    "HOST";
+
+
+                div.appendChild(
+                    host
+                );
+            }
+
+
+            lobbyPlayers.appendChild(
+                div
+            );
+        }
+    );
+
+
+    if (isHost) {
+
+        startButton.classList.remove(
             "hidden"
         );
 
-        waiting.textContent =
-            "You are the host. You need at least 4 players.";
+        waitingText.textContent =
+            "You are the host.";
 
     } else {
 
-        button.classList.add(
+        startButton.classList.add(
             "hidden"
         );
 
-        waiting.textContent =
-            "Waiting for the host to start...";
+        waitingText.textContent =
+            "Waiting for the host...";
     }
 }
 
 
-// ==================================================
-// COPY ROOM
-// ==================================================
-
-function copyRoomCode() {
-
-    navigator.clipboard.writeText(
-        roomCode
-    );
-
-    document
-        .getElementById("roomCode")
-        .textContent =
-        "COPIED!";
-
-    setTimeout(() => {
-
-        document
-            .getElementById("roomCode")
-            .textContent =
-            roomCode;
-
-    }, 1000);
-}
-
-
-// ==================================================
+// =====================================================
 // START GAME
-// ==================================================
+// =====================================================
 
-function startGame() {
+startButton.onclick =
+    () => {
 
-    socket.emit(
-        "startGame",
-        roomCode
-    );
-}
+        socket.emit(
+            "startGame",
+            roomCode
+        );
+    };
 
 
-// ==================================================
-// ROLE
-// ==================================================
+// =====================================================
+// YOUR ROLE
+// =====================================================
 
-socket.on("yourRole", data => {
+socket.on(
+    "yourRole",
+    data => {
 
-    myRole = data.role;
+        myRole =
+            data.role;
 
-    const role =
-        document.getElementById("role");
 
-    let text = "";
+        sideRole.textContent =
+            myRole;
 
-    if (data.role === "Mafia") {
 
-        text =
-            "🔴 YOU ARE MAFIA";
+        updateRoleDisplay(
+            myRole,
+            data.mafiaMembers
+        );
+    }
+);
+
+
+// =====================================================
+// ROLE DISPLAY
+// =====================================================
+
+function updateRoleDisplay(
+    role,
+    mafiaMembers
+) {
+
+    let emoji = "👤";
+
+    let description =
+        "You are a Citizen. Find the Mafia.";
+
+
+    if (role === "Mafia") {
+
+        emoji = "🔴";
+
+        description =
+            "Eliminate the non-Mafia players. Work secretly with the other Mafia.";
 
         if (
-            data.mafiaMembers &&
-            data.mafiaMembers.length > 1
+            mafiaMembers &&
+            mafiaMembers.length > 1
         ) {
 
-            text +=
-                "<br><small>Other Mafia: " +
-                escapeHtml(
-                    data.mafiaMembers
-                        .filter(
-                            name =>
-                                name !==
-                                getName()
-                        )
-                        .join(", ")
-                ) +
-                "</small>";
+            description +=
+                `<br><br><strong>Mafia:</strong> ${mafiaMembers.join(", ")}`;
         }
 
     }
 
-    else if (data.role === "Detective") {
 
-        text =
-            "🔎 YOU ARE THE DETECTIVE";
+    if (role === "Doctor") {
 
-    }
+        emoji = "🩺";
 
-    else if (data.role === "Doctor") {
-
-        text =
-            "🩺 YOU ARE THE DOCTOR";
+        description =
+            "Protect someone from the Mafia each night.";
 
     }
 
-    else {
 
-        text =
-            "👨‍🌾 YOU ARE A CITIZEN";
-    }
+    if (role === "Detective") {
 
-    role.innerHTML = text;
+        emoji = "🔎";
 
-    document
-        .getElementById("lobby")
-        .classList.add("hidden");
-
-    document
-        .getElementById("game")
-        .classList.remove("hidden");
-
-});
-
-
-// ==================================================
-// PHASE
-// ==================================================
-
-socket.on("phaseUpdate", data => {
-
-    const phase =
-        document.getElementById(
-            "phase"
-        );
-
-    const timer =
-        document.getElementById(
-            "timer"
-        );
-
-    if (data.phase === "night") {
-
-        phase.textContent =
-            "🌙 NIGHT";
+        description =
+            "Investigate players to discover whether they are Mafia.";
 
     }
 
-    else if (data.phase === "day") {
 
-        phase.textContent =
-            "☀️ DAY";
-
-    }
-
-    else {
-
-        phase.textContent =
-            "🏆 GAME OVER";
-    }
-
-    timer.textContent =
-        data.timeLeft > 0
-            ? data.timeLeft
-            : "";
-});
+    roleName.textContent =
+        `${emoji} ${role}`;
 
 
-// ==================================================
-// NIGHT
-// ==================================================
-
-socket.on("nightStarted", data => {
-
-    if (!alive) return;
-
-    document
-        .getElementById("result")
-        .textContent =
-        data.message;
-
-    const actions =
-        document.getElementById(
-            "actions"
-        );
-
-    actions.innerHTML = "";
-
-    if (
-        myRole === "Citizen"
-    ) {
-
-        actions.innerHTML =
-            "<p>😴 Wait for morning.</p>";
-
-        return;
-    }
+    roleDescription.innerHTML =
+        description;
+}
 
 
-    const title =
-        document.createElement("h3");
+// =====================================================
+// GAME PLAYERS
+// =====================================================
 
-    title.className =
-        "actionTitle";
+function updateGamePlayers(
+    players
+) {
 
-    title.textContent =
-        "Choose someone:";
-
-    actions.appendChild(title);
+    gamePlayers.innerHTML =
+        "";
 
 
-    data.targets.forEach(target => {
+    gamePlayerCount.textContent =
+        `${players.length} players`;
 
-        if (target.id === myId)
-            return;
 
-        const button =
-            document.createElement(
-                "button"
+    players.forEach(
+        player => {
+
+            const div =
+                document.createElement(
+                    "div"
+                );
+
+
+            div.className =
+                "game-player " +
+                (
+                    player.alive
+                        ? "alive"
+                        : "dead"
+                );
+
+
+            const name =
+                document.createElement(
+                    "div"
+                );
+
+
+            name.className =
+                "game-player-name";
+
+
+            name.textContent =
+                player.name;
+
+
+            const status =
+                document.createElement(
+                    "div"
+                );
+
+
+            status.className =
+                "game-player-status";
+
+
+            status.textContent =
+                player.alive
+                    ? "🟢 Alive"
+                    : "💀 Dead";
+
+
+            div.appendChild(
+                name
             );
 
-        button.className =
-            "targetButton";
 
-        button.textContent =
-            target.name;
+            div.appendChild(
+                status
+            );
 
-        button.onclick = () => {
 
-            socket.emit(
-                "nightAction",
-                {
-                    code: roomCode,
-                    targetId: target.id
+            gamePlayers.appendChild(
+                div
+            );
+
+
+            if (
+                player.name ===
+                nameInput.value.trim()
+            ) {
+
+                myAlive =
+                    player.alive;
+            }
+
+        }
+    );
+
+
+    updateChatAvailability();
+}
+
+
+// =====================================================
+// PHASE UPDATE
+// =====================================================
+
+socket.on(
+    "phaseUpdate",
+    data => {
+
+        currentPhase =
+            data.phase;
+
+
+        timerNumber.textContent =
+            Math.max(
+                0,
+                data.timeLeft
+            );
+
+
+        if (
+            data.phase ===
+            "day"
+        ) {
+
+            phaseTitle.textContent =
+                "☀️ Day";
+
+
+            phaseDescription.textContent =
+                "Everyone can talk and vote.";
+
+
+            updateChatAvailability();
+
+        } else if (
+            data.phase ===
+            "night"
+        ) {
+
+            updateNightPhaseDisplay();
+
+        } else if (
+            data.phase ===
+            "ended"
+        ) {
+
+            phaseTitle.textContent =
+                "🏆 Game Over";
+
+
+            phaseDescription.textContent =
+                "The game has ended.";
+
+
+            updateChatAvailability();
+
+        } else {
+
+            phaseTitle.textContent =
+                "🏠 Lobby";
+
+
+            phaseDescription.textContent =
+                "Waiting for the game to begin.";
+        }
+
+    }
+);
+
+
+// =====================================================
+// NIGHT PHASE DISPLAY
+// =====================================================
+
+function updateNightPhaseDisplay() {
+
+    if (
+        currentNightStep ===
+        "mafia"
+    ) {
+
+        phaseTitle.textContent =
+            "🔴 Mafia Decision";
+
+
+        phaseDescription.textContent =
+            "The Mafia are choosing their target.";
+
+    } else if (
+        currentNightStep ===
+        "doctor"
+    ) {
+
+        phaseTitle.textContent =
+            "🩺 Doctor Decision";
+
+
+        phaseDescription.textContent =
+            "The Doctor is choosing who to protect.";
+
+    } else if (
+        currentNightStep ===
+        "detective"
+    ) {
+
+        phaseTitle.textContent =
+            "🔎 Detective Decision";
+
+
+        phaseDescription.textContent =
+            "The Detective is investigating someone.";
+
+    } else {
+
+        phaseTitle.textContent =
+            "🌙 Night";
+
+
+        phaseDescription.textContent =
+            "Everyone is asleep.";
+    }
+
+
+    updateChatAvailability();
+}
+
+
+// =====================================================
+// NIGHT STARTED
+// =====================================================
+
+socket.on(
+    "nightStarted",
+    data => {
+
+        actionBox.classList.add(
+            "hidden"
+        );
+
+
+        if (
+            currentPhase !==
+            "night"
+        )
+            return;
+
+
+        const message =
+            data.message || "";
+
+
+        // Detect which phase it is
+        if (
+            message.includes(
+                "Mafia Decision"
+            )
+        ) {
+
+            currentNightStep =
+                "mafia";
+
+        } else if (
+            message.includes(
+                "Doctor Decision"
+            )
+        ) {
+
+            currentNightStep =
+                "doctor";
+
+        } else if (
+            message.includes(
+                "Detective Decision"
+            )
+        ) {
+
+            currentNightStep =
+                "detective";
+
+        }
+
+
+        updateNightPhaseDisplay();
+
+
+        // Show action controls
+        if (
+            data.targets &&
+            data.targets.length > 0
+        ) {
+
+            actionBox.classList.remove(
+                "hidden"
+            );
+
+
+            actionDescription.textContent =
+                message;
+
+
+            targets.innerHTML =
+                "";
+
+
+            if (
+                currentNightStep ===
+                "mafia"
+            ) {
+
+                actionTitle.textContent =
+                    "🔴 Choose Attack Target";
+
+            } else if (
+                currentNightStep ===
+                "doctor"
+            ) {
+
+                actionTitle.textContent =
+                    "🩺 Choose Protection Target";
+
+            } else if (
+                currentNightStep ===
+                "detective"
+            ) {
+
+                actionTitle.textContent =
+                    "🔎 Choose Investigation Target";
+
+            }
+
+
+            data.targets.forEach(
+                target => {
+
+                    const button =
+                        document.createElement(
+                            "button"
+                        );
+
+
+                    button.className =
+                        "target-button";
+
+
+                    button.textContent =
+                        target.name;
+
+
+                    button.onclick =
+                        () => {
+
+                            selectNightTarget(
+                                target,
+                                button
+                            );
+                        };
+
+
+                    targets.appendChild(
+                        button
+                    );
+
                 }
             );
 
-            actions.innerHTML =
-                "<p>✅ Action submitted. You can change your choice before night ends.</p>";
-        };
+        } else {
 
-        actions.appendChild(button);
-    });
+            actionBox.classList.add(
+                "hidden"
+            );
+        }
 
-});
+    }
+);
 
 
-socket.on("actionSubmitted", () => {
+// =====================================================
+// SELECT NIGHT TARGET
+// =====================================================
+
+function selectNightTarget(
+    target,
+    button
+) {
+
+    selectedTarget =
+        target.id;
+
 
     document
-        .getElementById("result")
-        .textContent =
-        "✅ Your action has been submitted.";
-});
+        .querySelectorAll(
+            ".target-button"
+        )
+        .forEach(
+            btn =>
+                btn.classList.remove(
+                    "selected"
+                )
+        );
 
 
-// ==================================================
-// DETECTIVE
-// ==================================================
+    button.classList.add(
+        "selected"
+    );
+
+
+    let eventName =
+        "nightAction";
+
+
+    if (
+        currentNightStep ===
+        "mafia"
+    ) {
+
+        eventName =
+            "mafiaAction";
+
+    } else if (
+        currentNightStep ===
+        "doctor"
+    ) {
+
+        eventName =
+            "doctorAction";
+
+    } else if (
+        currentNightStep ===
+        "detective"
+    ) {
+
+        eventName =
+            "detectiveAction";
+    }
+
+
+    socket.emit(
+        eventName,
+        {
+            code: roomCode,
+            targetId:
+                target.id
+        }
+    );
+
+}
+
+
+// =====================================================
+// ACTION SUBMITTED
+// =====================================================
+
+socket.on(
+    "actionSubmitted",
+    () => {
+
+        actionDescription.textContent =
+            "✅ Decision submitted. You can wait for the phase to finish.";
+
+    }
+);
+
+
+// =====================================================
+// DETECTIVE RESULT
+// =====================================================
 
 socket.on(
     "detectiveResult",
     data => {
 
-        const result =
-            document.getElementById(
-                "result"
-            );
+        addSystemMessage(
+            `🔎 Investigation: ${data.name} is ${
+                data.mafia
+                    ? "🔴 Mafia"
+                    : "🟢 not Mafia"
+            }.`
+        );
 
-        if (data.mafia) {
-
-            result.textContent =
-                `🔎 Investigation: ${data.name} IS MAFIA.`;
-
-        } else {
-
-            result.textContent =
-                `🔎 Investigation: ${data.name} is NOT Mafia.`;
-        }
     }
 );
 
 
-// ==================================================
-// DAY
-// ==================================================
+// =====================================================
+// DAY STARTED
+// =====================================================
 
-socket.on("dayStarted", () => {
+socket.on(
+    "dayStarted",
+    () => {
 
-    if (!alive) {
+        currentNightStep =
+            "";
 
-        document
-            .getElementById("actions")
-            .innerHTML =
-            "<p>💀 You are dead. Watch the game.</p>";
 
-        return;
+        actionBox.classList.add(
+            "hidden"
+        );
+
+
+        addSystemMessage(
+            "☀️ Day has begun. Everyone can talk!"
+        );
+
+
+        updateChatAvailability();
     }
-
-    const actions =
-        document.getElementById(
-            "actions"
-        );
-
-    actions.innerHTML =
-        "<h3>☀️ Discuss with everyone.</h3>" +
-        "<p>Use the chat to decide who you think is Mafia.</p>" +
-        "<p>Then choose someone to vote out.</p>";
-
-    setTimeout(
-        showVoting,
-        500
-    );
-});
+);
 
 
-function showVoting() {
+// =====================================================
+// VOTE TARGETS
+// =====================================================
 
-    if (!alive) return;
-
-    const actions =
-        document.getElementById(
-            "actions"
-        );
-
-    actions.innerHTML =
-        "<h3>🗳️ Vote someone out</h3>";
-
-    const players =
-        document
-            .getElementById(
-                "gamePlayers"
-            )
-            .querySelectorAll(
-                ".player"
-            );
-
-    // Ask server for current players
-    socket.emit(
-        "requestVoteTargets",
-        roomCode
-    );
-}
+socket.emit(
+    "requestVoteTargets",
+    roomCode
+);
 
 
 socket.on(
     "voteTargets",
     players => {
 
-        if (!alive) return;
+        if (
+            currentPhase !==
+            "day"
+        )
+            return;
 
-        const actions =
-            document.getElementById(
-                "actions"
+
+        if (!myAlive)
+            return;
+
+
+        actionBox.classList.remove(
+            "hidden"
+        );
+
+
+        actionTitle.textContent =
+            "🗳️ Vote";
+
+
+        actionDescription.textContent =
+            "Choose someone you think is Mafia.";
+
+
+        targets.innerHTML =
+            "";
+
+
+        players
+            .filter(
+                player =>
+                    player.alive &&
+                    player.name !==
+                        nameInput.value.trim()
+            )
+            .forEach(
+                player => {
+
+                    const button =
+                        document.createElement(
+                            "button"
+                        );
+
+
+                    button.className =
+                        "target-button";
+
+
+                    button.textContent =
+                        player.name;
+
+
+                    button.onclick =
+                        () => {
+
+                            document
+                                .querySelectorAll(
+                                    ".target-button"
+                                )
+                                .forEach(
+                                    btn =>
+                                        btn.classList.remove(
+                                            "selected"
+                                        )
+                                );
+
+
+                            button.classList.add(
+                                "selected"
+                            );
+
+
+                            socket.emit(
+                                "vote",
+                                {
+                                    code:
+                                        roomCode,
+
+                                    targetId:
+                                        player.id
+                                }
+                            );
+
+
+                            actionDescription.textContent =
+                                `🗳️ You voted for ${player.name}.`;
+                        };
+
+
+                    targets.appendChild(
+                        button
+                    );
+
+                }
             );
 
-        actions.innerHTML =
-            "<h3>🗳️ Vote someone out</h3>";
-
-        players.forEach(player => {
-
-            if (!player.alive)
-                return;
-
-            if (player.id === myId)
-                return;
-
-            const button =
-                document.createElement(
-                    "button"
-                );
-
-            button.className =
-                "targetButton";
-
-            button.textContent =
-                "Vote " +
-                player.name;
-
-            button.onclick = () => {
-
-                socket.emit(
-                    "vote",
-                    {
-                        code: roomCode,
-                        targetId: player.id
-                    }
-                );
-
-                actions.innerHTML =
-                    "<p>✅ Vote submitted.</p>";
-            };
-
-            actions.appendChild(button);
-        });
-
-    });
-
-
-socket.on("voteSubmitted", () => {
-
-    document
-        .getElementById("result")
-        .textContent =
-        "✅ Your vote has been submitted.";
-});
-
-
-// ==================================================
-// SYSTEM MESSAGES
-// ==================================================
-
-socket.on(
-    "systemMessage",
-    message => {
-
-        document
-            .getElementById("result")
-            .textContent =
-            message;
     }
 );
 
 
-// ==================================================
-// CHAT
-// ==================================================
+// =====================================================
+// CHAT AVAILABILITY
+// =====================================================
+
+function updateChatAvailability() {
+
+    if (!chatInput || !chatButton)
+        return;
+
+
+    if (!myAlive) {
+
+        chatInput.disabled =
+            true;
+
+        chatButton.disabled =
+            true;
+
+        chatInput.placeholder =
+            "You are dead.";
+
+        chatStatus.textContent =
+            "💀 Dead players cannot chat.";
+
+        return;
+    }
+
+
+    if (
+        currentPhase ===
+        "day"
+    ) {
+
+        chatInput.disabled =
+            false;
+
+        chatButton.disabled =
+            false;
+
+        chatInput.placeholder =
+            "Talk to everyone...";
+
+        chatStatus.textContent =
+            "☀️ Day chat — everyone can see this.";
+
+        return;
+    }
+
+
+    if (
+        currentPhase ===
+        "night"
+    ) {
+
+        if (
+            currentNightStep ===
+            "mafia" &&
+            myRole === "Mafia"
+        ) {
+
+            chatInput.disabled =
+                false;
+
+            chatButton.disabled =
+                false;
+
+            chatInput.placeholder =
+                "Talk privately to the Mafia...";
+
+            chatStatus.textContent =
+                "🔴 Private Mafia chat.";
+
+            return;
+        }
+
+
+        if (
+            currentNightStep ===
+            "doctor" &&
+            myRole === "Doctor"
+        ) {
+
+            chatInput.disabled =
+                false;
+
+            chatButton.disabled =
+                false;
+
+            chatInput.placeholder =
+                "Talk privately to the Doctors...";
+
+            chatStatus.textContent =
+                "🩺 Private Doctor chat.";
+
+            return;
+        }
+
+
+        if (
+            currentNightStep ===
+            "detective" &&
+            myRole === "Detective"
+        ) {
+
+            chatInput.disabled =
+                false;
+
+            chatButton.disabled =
+                false;
+
+            chatInput.placeholder =
+                "Talk privately to the Detectives...";
+
+            chatStatus.textContent =
+                "🔎 Private Detective chat.";
+
+            return;
+        }
+
+
+        chatInput.disabled =
+            true;
+
+        chatButton.disabled =
+            true;
+
+        chatInput.placeholder =
+            "You cannot chat right now.";
+
+        chatStatus.textContent =
+            "🌙 You cannot chat during this night phase.";
+
+        return;
+    }
+
+
+    chatInput.disabled =
+        true;
+
+    chatButton.disabled =
+        true;
+
+    chatInput.placeholder =
+        "Chat unavailable.";
+
+    chatStatus.textContent =
+        "";
+}
+
+
+// =====================================================
+// SEND CHAT
+// =====================================================
 
 function sendChat() {
 
-    if (!alive) return;
-
-    const input =
-        document.getElementById(
-            "chatInput"
-        );
-
     const message =
-        input.value.trim();
+        chatInput.value.trim();
 
-    if (!message) return;
+
+    if (!message)
+        return;
+
+
+    if (
+        chatInput.disabled
+    )
+        return;
+
 
     socket.emit(
         "chat",
         {
-            code: roomCode,
+            code:
+                roomCode,
+
             message
         }
     );
 
-    input.value = "";
 
-    input.focus();
+    chatInput.value =
+        "";
+
 }
 
 
-function chatKey(event) {
+chatButton.onclick =
+    sendChat;
 
-    if (event.key === "Enter") {
 
-        sendChat();
+chatInput.addEventListener(
+    "keydown",
+    event => {
+
+        if (
+            event.key ===
+            "Enter"
+        ) {
+
+            sendChat();
+        }
+
     }
-}
+);
 
+
+// =====================================================
+// CHAT MESSAGE
+// =====================================================
 
 socket.on(
     "chatMessage",
     data => {
-
-        const chat =
-            document.getElementById(
-                "chat"
-            );
 
         const div =
             document.createElement(
                 "div"
             );
 
+
         div.className =
-            "chatMessage";
+            "message";
 
-        div.innerHTML =
-            `<span class="chatName">
-                ${escapeHtml(data.name)}
-            </span>: 
-            ${escapeHtml(data.message)}`;
 
-        chat.appendChild(div);
+        const name =
+            document.createElement(
+                "span"
+            );
 
-        chat.scrollTop =
-            chat.scrollHeight;
+
+        name.className =
+            "message-name";
+
+
+        name.textContent =
+            data.name + ": ";
+
+
+        const text =
+            document.createElement(
+                "span"
+            );
+
+
+        text.textContent =
+            data.message;
+
+
+        div.appendChild(
+            name
+        );
+
+
+        div.appendChild(
+            text
+        );
+
+
+        messages.appendChild(
+            div
+        );
+
+
+        messages.scrollTop =
+            messages.scrollHeight;
     }
 );
 
 
-// ==================================================
+// =====================================================
+// SYSTEM MESSAGE
+// =====================================================
+
+socket.on(
+    "systemMessage",
+    message => {
+
+        addSystemMessage(
+            message
+        );
+
+    }
+);
+
+
+function addSystemMessage(
+    message
+) {
+
+    const div =
+        document.createElement(
+            "div"
+        );
+
+
+    div.className =
+        "system-message";
+
+
+    div.textContent =
+        message;
+
+
+    messages.appendChild(
+        div
+    );
+
+
+    messages.scrollTop =
+        messages.scrollHeight;
+}
+
+
+// =====================================================
+// ERROR MESSAGE
+// =====================================================
+
+socket.on(
+    "errorMessage",
+    message => {
+
+        showError(
+            message
+        );
+
+
+        addSystemMessage(
+            "⚠️ " + message
+        );
+
+    }
+);
+
+
+// =====================================================
 // GAME OVER
-// ==================================================
+// =====================================================
 
 socket.on(
     "gameOver",
     data => {
 
-        const gameOver =
-            document.getElementById(
-                "gameOver"
-            );
+        currentPhase =
+            "ended";
 
-        gameOver.classList.remove(
-            "hidden"
-        );
 
-        document
-            .getElementById("winner")
-            .textContent =
+        winnerText.textContent =
             data.winner === "Mafia"
-                ? "🔴 MAFIA WIN"
-                : "🟢 CITIZENS WIN";
+                ? "🔴 Mafia Win!"
+                : "🟢 Citizens Win!";
 
 
-        const roles =
-            document.getElementById(
-                "roles"
-            );
+        roleReveal.innerHTML =
+            "";
 
-        roles.innerHTML =
-            "<h3>Everyone's roles</h3>";
 
         data.players.forEach(
             player => {
@@ -1614,105 +2903,108 @@ socket.on(
                         "div"
                     );
 
+
                 div.className =
-                    "roleItem";
+                    "role-reveal";
 
-                div.textContent =
-                    `${player.name} — ${player.role}`;
 
-                roles.appendChild(div);
+                const name =
+                    document.createElement(
+                        "span"
+                    );
+
+
+                name.textContent =
+                    player.name;
+
+
+                const role =
+                    document.createElement(
+                        "strong"
+                    );
+
+
+                role.textContent =
+                    player.role;
+
+
+                div.appendChild(
+                    name
+                );
+
+
+                div.appendChild(
+                    role
+                );
+
+
+                roleReveal.appendChild(
+                    div
+                );
+
             }
         );
 
-        document
-            .getElementById("actions")
-            .innerHTML =
-            "<p>The game has ended.</p>";
 
+        gameOverOverlay.style.display =
+            "flex";
+
+
+        updateChatAvailability();
     }
 );
 
 
-// ==================================================
-// PLAYER DISCONNECTED / DEAD
-// ==================================================
+// =====================================================
+// SHOW GAME
+// =====================================================
 
-socket.on(
-    "playersUpdate",
-    data => {
+function showGame() {
 
-        const me =
-            data.players.find(
-                p => p.id === myId
-            );
+    homeScreen.classList.add(
+        "hidden"
+    );
 
-        if (me) {
+    lobbyScreen.classList.add(
+        "hidden"
+    );
 
-            alive = me.alive;
-
-            const notice =
-                document.getElementById(
-                    "deadNotice"
-                );
-
-            if (!alive) {
-
-                notice.classList.remove(
-                    "hidden"
-                );
-
-                document
-                    .getElementById(
-                        "chatInput"
-                    )
-                    .disabled = true;
-
-            } else {
-
-                notice.classList.add(
-                    "hidden"
-                );
-
-                document
-                    .getElementById(
-                        "chatInput"
-                    )
-                    .disabled = false;
-            }
-        }
-    }
-);
-
-
-// ==================================================
-// ERROR
-// ==================================================
-
-socket.on(
-    "errorMessage",
-    message => {
-
-        showError(message);
-    }
-);
-
-
-// ==================================================
-// SECURITY
-// ==================================================
-
-function escapeHtml(text) {
-
-    return String(text)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+    gameScreen.style.display =
+        "flex";
 }
+
+
+// =====================================================
+// AUTOMATIC GAME SCREEN
+// =====================================================
+
+socket.on(
+    "phaseUpdate",
+    () => {
+
+        if (
+            currentPhase ===
+            "day" ||
+            currentPhase ===
+            "night"
+        ) {
+
+            showGame();
+        }
+
+    }
+);
+
+
+// =====================================================
+// INITIAL SETUP
+// =====================================================
+
+updateChatAvailability();
 
 </script>
 
 </body>
 
 </html>
+```
