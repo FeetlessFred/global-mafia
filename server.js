@@ -13,10 +13,6 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const games = {};
 
-// =====================================================
-// BASIC HELPERS
-// =====================================================
-
 function createRoomCode() {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     let code;
@@ -39,7 +35,6 @@ function getGame(code) {
 
 function getPlayer(game, id) {
     if (!game) return null;
-
     return game.players.find(player => player.id === id);
 }
 
@@ -80,10 +75,6 @@ function sendSystemMessage(code, message) {
     io.to(code).emit("systemMessage", message);
 }
 
-// =====================================================
-// TIMER
-// =====================================================
-
 function stopTimer(game) {
     if (!game) return;
 
@@ -117,10 +108,6 @@ function startTimer(code, seconds, callback) {
         }
     }, 1000);
 }
-
-// =====================================================
-// ROLES
-// =====================================================
 
 function getMafiaCount(playerCount) {
     if (playerCount >= 10) return 3;
@@ -164,10 +151,6 @@ function createRoles(playerCount) {
     return shuffle(roles);
 }
 
-// =====================================================
-// WINNER
-// =====================================================
-
 function checkWinner(code) {
     const game = getGame(code);
 
@@ -196,10 +179,6 @@ function checkWinner(code) {
     return false;
 }
 
-// =====================================================
-// END GAME
-// =====================================================
-
 function endGame(code, winner) {
     const game = getGame(code);
 
@@ -222,10 +201,6 @@ function endGame(code, winner) {
 
     sendPhase(code);
 }
-
-// =====================================================
-// PRIVATE ROLE CHAT
-// =====================================================
 
 function getChatRoleForNightStep(step) {
     if (step === "mafia") return "Mafia";
@@ -251,10 +226,6 @@ function sendPrivateRoleChat(game, role, sender, message) {
     });
 }
 
-// =====================================================
-// START GAME
-// =====================================================
-
 function startGame(code) {
     const game = getGame(code);
 
@@ -269,15 +240,12 @@ function startGame(code) {
         return;
     }
 
-    if (game.players.length > 12) {
-        return;
-    }
-
     const roles = createRoles(game.players.length);
 
     game.players.forEach((player, index) => {
         player.role = roles[index];
         player.alive = true;
+        player.hasVoted = false;
     });
 
     game.phase = "night";
@@ -293,7 +261,6 @@ function startGame(code) {
         detective: null
     };
 
-    // Tell everyone their role privately
     game.players.forEach(player => {
         const mafiaMembers = game.players
             .filter(p => p.role === "Mafia")
@@ -317,10 +284,6 @@ function startGame(code) {
 
     startMafiaPhase(code);
 }
-
-// =====================================================
-// NIGHT: MAFIA
-// =====================================================
 
 function startMafiaPhase(code) {
     const game = getGame(code);
@@ -478,10 +441,6 @@ function finishMafiaPhase(code) {
     startDoctorPhase(code);
 }
 
-// =====================================================
-// NIGHT: DOCTOR
-// =====================================================
-
 function startDoctorPhase(code) {
     const game = getGame(code);
 
@@ -594,10 +553,6 @@ function finishDoctorPhase(code) {
     startDetectivePhase(code);
 }
 
-// =====================================================
-// NIGHT: DETECTIVE
-// =====================================================
-
 function startDetectivePhase(code) {
     const game = getGame(code);
 
@@ -706,10 +661,6 @@ function detectiveAction(socket, data) {
     finishDetectivePhase(data.code);
 }
 
-// =====================================================
-// FINISH NIGHT
-// =====================================================
-
 function finishDetectivePhase(code) {
     const game = getGame(code);
 
@@ -777,10 +728,6 @@ function finishDetectivePhase(code) {
     }, 3000);
 }
 
-// =====================================================
-// DAY
-// =====================================================
-
 function startDay(code) {
     const game = getGame(code);
 
@@ -789,6 +736,10 @@ function startDay(code) {
     game.phase = "day";
     game.nightStep = null;
     game.votes = {};
+
+    game.players.forEach(player => {
+        player.hasVoted = false;
+    });
 
     sendPhase(code);
 
@@ -804,14 +755,18 @@ function startDay(code) {
     });
 }
 
-// =====================================================
-// VOTING
-// =====================================================
-
 function sendVoteTargets(socket, game) {
     const player = getPlayer(game, socket.id);
 
     if (!player || !player.alive) {
+        socket.emit("voteTargets", {
+            targets: []
+        });
+
+        return;
+    }
+
+    if (player.hasVoted) {
         socket.emit("voteTargets", {
             targets: []
         });
@@ -850,6 +805,14 @@ function vote(socket, data) {
     if (!player.alive) return;
     if (!target.alive) return;
     if (player.id === target.id) return;
+
+    // IMPORTANT:
+    // A player can only vote ONCE.
+    if (player.hasVoted) {
+        return;
+    }
+
+    player.hasVoted = true;
 
     game.votes[player.id] = target.id;
 
@@ -935,10 +898,6 @@ function finishVoting(code) {
     }, 3000);
 }
 
-// =====================================================
-// NEXT NIGHT
-// =====================================================
-
 function startNight(code) {
     const game = getGame(code);
 
@@ -962,10 +921,6 @@ function startNight(code) {
     startMafiaPhase(code);
 }
 
-// =====================================================
-// CHAT
-// =====================================================
-
 function handleChat(socket, data) {
     const game = getGame(data.code);
 
@@ -984,7 +939,6 @@ function handleChat(socket, data) {
 
     if (!message) return;
 
-    // DAY CHAT
     if (game.phase === "day") {
         io.to(data.code).emit(
             "chatMessage",
@@ -998,7 +952,6 @@ function handleChat(socket, data) {
         return;
     }
 
-    // NIGHT CHAT
     if (game.phase === "night") {
         const allowedRole =
             getChatRoleForNightStep(
@@ -1019,17 +972,10 @@ function handleChat(socket, data) {
     }
 }
 
-// =====================================================
-// SOCKET CONNECTION
-// =====================================================
-
 io.on("connection", socket => {
 
-    // -------------------------------------------------
-    // CREATE GAME
-    // -------------------------------------------------
-
     socket.on("createGame", data => {
+
         const name =
             String(data.name || "")
                 .trim()
@@ -1055,7 +1001,8 @@ io.on("connection", socket => {
                     id: socket.id,
                     name,
                     role: null,
-                    alive: true
+                    alive: true,
+                    hasVoted: false
                 }
             ],
 
@@ -1093,11 +1040,8 @@ io.on("connection", socket => {
         );
     });
 
-    // -------------------------------------------------
-    // JOIN GAME
-    // -------------------------------------------------
-
     socket.on("joinGame", data => {
+
         const code =
             String(data.code || "")
                 .trim()
@@ -1166,7 +1110,8 @@ io.on("connection", socket => {
             id: socket.id,
             name,
             role: null,
-            alive: true
+            alive: true,
+            hasVoted: false
         });
 
         socket.join(code);
@@ -1188,11 +1133,8 @@ io.on("connection", socket => {
         });
     });
 
-    // -------------------------------------------------
-    // START GAME
-    // -------------------------------------------------
-
     socket.on("startGame", data => {
+
         const game = getGame(data.code);
 
         if (!game) return;
@@ -1213,29 +1155,20 @@ io.on("connection", socket => {
         startGame(data.code);
     });
 
-    // -------------------------------------------------
-    // NIGHT ACTION
-    // -------------------------------------------------
-
     socket.on("nightAction", data => {
-        const step = data.step;
 
-        if (step === "mafia") {
+        if (data.step === "mafia") {
             mafiaAction(socket, data);
         }
 
-        if (step === "doctor") {
+        if (data.step === "doctor") {
             doctorAction(socket, data);
         }
 
-        if (step === "detective") {
+        if (data.step === "detective") {
             detectiveAction(socket, data);
         }
     });
-
-    // -------------------------------------------------
-    // OLD EVENT NAMES ALSO WORK
-    // -------------------------------------------------
 
     socket.on("mafiaAction", data => {
         mafiaAction(socket, data);
@@ -1249,11 +1182,8 @@ io.on("connection", socket => {
         detectiveAction(socket, data);
     });
 
-    // -------------------------------------------------
-    // REQUEST VOTE TARGETS
-    // -------------------------------------------------
-
     socket.on("requestVoteTargets", data => {
+
         const game = getGame(data.code);
 
         if (!game) return;
@@ -1263,30 +1193,20 @@ io.on("connection", socket => {
         sendVoteTargets(socket, game);
     });
 
-    // -------------------------------------------------
-    // VOTE
-    // -------------------------------------------------
-
     socket.on("vote", data => {
         vote(socket, data);
     });
-
-    // -------------------------------------------------
-    // CHAT
-    // -------------------------------------------------
 
     socket.on("chat", data => {
         handleChat(socket, data);
     });
 
-    // -------------------------------------------------
-    // DISCONNECT
-    // -------------------------------------------------
-
     socket.on("disconnect", () => {
+
         let foundGame = null;
 
         for (const code of Object.keys(games)) {
+
             const game = games[code];
 
             const player = getPlayer(
@@ -1311,14 +1231,15 @@ io.on("connection", socket => {
 
         if (!player) return;
 
-        // LOBBY
         if (game.phase === "lobby") {
+
             game.players =
                 game.players.filter(
                     p => p.id !== socket.id
                 );
 
             if (game.host === socket.id) {
+
                 if (game.players.length > 0) {
                     game.host =
                         game.players[0].id;
@@ -1345,11 +1266,11 @@ io.on("connection", socket => {
             return;
         }
 
-        // ACTIVE GAME
         if (
             game.phase === "day" ||
             game.phase === "night"
         ) {
+
             player.alive = false;
 
             sendSystemMessage(
@@ -1363,11 +1284,11 @@ io.on("connection", socket => {
                 return;
             }
 
-            // If a Mafia disconnects during Mafia phase
             if (
                 game.phase === "night" &&
                 game.nightStep === "mafia"
             ) {
+
                 const livingMafia =
                     game.players.filter(
                         p =>
@@ -1387,15 +1308,9 @@ io.on("connection", socket => {
                     finishMafiaPhase(game.code);
                 }
             }
-
-            return;
         }
     });
 });
-
-// =====================================================
-// START SERVER
-// =====================================================
 
 server.listen(PORT, () => {
     console.log(
