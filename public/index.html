@@ -31,6 +31,11 @@ button {
     cursor: pointer;
 }
 
+button:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
 .screen {
     display: none;
     min-height: 100vh;
@@ -98,11 +103,6 @@ button {
 
 button:hover {
     filter: brightness(1.12);
-}
-
-button:disabled {
-    opacity: .45;
-    cursor: not-allowed;
 }
 
 .secondary {
@@ -362,6 +362,62 @@ button:disabled {
     font-weight: bold;
 }
 
+/* CONFIRMATION POPUP */
+
+.confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.78);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    z-index: 50;
+}
+
+.confirm-overlay.active {
+    display: flex;
+}
+
+.confirm-box {
+    width: min(430px, 95vw);
+    background: #181926;
+    border: 1px solid #444861;
+    border-radius: 18px;
+    padding: 25px;
+    text-align: center;
+    box-shadow: 0 20px 70px rgba(0,0,0,.55);
+}
+
+.confirm-box h2 {
+    margin: 0 0 10px;
+}
+
+.confirm-box p {
+    color: #b7bacd;
+}
+
+.confirm-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.confirm-buttons button {
+    flex: 1;
+    margin: 0;
+}
+
+.cancel-button {
+    background: #303348;
+}
+
+.vote-button {
+    background: #b93650;
+}
+
+/* GAME OVER */
+
 .overlay {
     position: fixed;
     inset: 0;
@@ -405,6 +461,7 @@ button:disabled {
 }
 
 @media (max-width: 1000px) {
+
     .game-grid {
         grid-template-columns: 1fr;
     }
@@ -419,6 +476,7 @@ button:disabled {
 }
 
 @media (max-width: 600px) {
+
     h1 {
         font-size: 32px;
     }
@@ -438,6 +496,7 @@ button:disabled {
 <body>
 
 <!-- HOME -->
+
 <div id="homeScreen" class="screen active center">
 
     <div class="card">
@@ -485,6 +544,7 @@ button:disabled {
 </div>
 
 <!-- LOBBY -->
+
 <div id="lobbyScreen" class="screen">
 
     <div class="card lobby">
@@ -520,11 +580,13 @@ button:disabled {
 </div>
 
 <!-- GAME -->
+
 <div id="gameScreen" class="screen">
 
     <div class="topbar">
 
         <div>
+
             <div id="phaseText" class="phase">
                 Waiting...
             </div>
@@ -532,18 +594,25 @@ button:disabled {
             <div id="roundText">
                 Round 1
             </div>
+
         </div>
 
         <div>
+
             Time:
             <span id="timerText" class="timer">
                 --
             </span>
+
         </div>
 
         <div>
+
             Room:
-            <strong id="gameRoomCode">-----</strong>
+            <strong id="gameRoomCode">
+                -----
+            </strong>
+
         </div>
 
     </div>
@@ -551,6 +620,7 @@ button:disabled {
     <div class="game-grid">
 
         <!-- PLAYERS -->
+
         <div class="panel players-panel">
 
             <div class="panel-title">
@@ -569,6 +639,7 @@ button:disabled {
         </div>
 
         <!-- MAIN -->
+
         <div class="panel">
 
             <div class="role-box">
@@ -621,6 +692,7 @@ button:disabled {
         </div>
 
         <!-- CHAT -->
+
         <div class="panel chat-panel">
 
             <div class="panel-title">
@@ -659,8 +731,49 @@ button:disabled {
 
 </div>
 
+<!-- VOTE CONFIRMATION -->
+
+<div
+    id="confirmOverlay"
+    class="confirm-overlay"
+>
+
+    <div class="confirm-box">
+
+        <h2>Confirm Vote</h2>
+
+        <p id="confirmText">
+            Are you sure?
+        </p>
+
+        <div class="confirm-buttons">
+
+            <button
+                id="cancelVoteButton"
+                class="cancel-button"
+            >
+                Cancel
+            </button>
+
+            <button
+                id="confirmVoteButton"
+                class="vote-button"
+            >
+                Yes, Vote
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
 <!-- GAME OVER -->
-<div id="gameOverOverlay" class="overlay">
+
+<div
+    id="gameOverOverlay"
+    class="overlay"
+>
 
     <div class="result-card">
 
@@ -671,7 +784,10 @@ button:disabled {
             Game Over
         </div>
 
-        <div id="resultsList" class="results-list"></div>
+        <div
+            id="resultsList"
+            class="results-list"
+        ></div>
 
         <button
             onclick="location.reload()"
@@ -685,6 +801,7 @@ button:disabled {
 </div>
 
 <script>
+
 const socket = io();
 
 let roomCode = "";
@@ -695,11 +812,11 @@ let hostId = "";
 
 let currentPhase = "lobby";
 let currentNightStep = null;
-let selectedAction = false;
 
-// =====================================================
-// ELEMENTS
-// =====================================================
+let hasVoted = false;
+let pendingVoteTarget = null;
+
+/* ELEMENTS */
 
 const homeScreen =
     document.getElementById("homeScreen");
@@ -712,6 +829,9 @@ const gameScreen =
 
 const gameOverOverlay =
     document.getElementById("gameOverOverlay");
+
+const confirmOverlay =
+    document.getElementById("confirmOverlay");
 
 const nameInput =
     document.getElementById("nameInput");
@@ -782,11 +902,19 @@ const spectatorText =
 const startButton =
     document.getElementById("startButton");
 
-// =====================================================
-// SCREEN FUNCTIONS
-// =====================================================
+const confirmText =
+    document.getElementById("confirmText");
+
+const confirmVoteButton =
+    document.getElementById("confirmVoteButton");
+
+const cancelVoteButton =
+    document.getElementById("cancelVoteButton");
+
+/* SCREEN */
 
 function showScreen(screen) {
+
     homeScreen.classList.remove("active");
     lobbyScreen.classList.remove("active");
     gameScreen.classList.remove("active");
@@ -794,8 +922,12 @@ function showScreen(screen) {
     screen.classList.add("active");
 }
 
+/* ERRORS */
+
 function showError(message) {
-    homeError.textContent = message;
+
+    homeError.textContent =
+        message;
 
     setTimeout(() => {
         homeError.textContent = "";
@@ -803,16 +935,16 @@ function showError(message) {
 }
 
 function showLobbyError(message) {
-    lobbyMessage.textContent = message;
+
+    lobbyMessage.textContent =
+        message;
 
     setTimeout(() => {
         lobbyMessage.textContent = "";
     }, 5000);
 }
 
-// =====================================================
-// CREATE GAME
-// =====================================================
+/* CREATE */
 
 document
     .getElementById("createButton")
@@ -833,9 +965,7 @@ document
         });
     });
 
-// =====================================================
-// JOIN GAME
-// =====================================================
+/* JOIN */
 
 document
     .getElementById("joinButton")
@@ -853,7 +983,9 @@ document
         }
 
         if (code.length !== 5) {
-            showError("Enter a 5-character room code.");
+            showError(
+                "Enter a 5-character room code."
+            );
             return;
         }
 
@@ -865,9 +997,7 @@ document
         });
     });
 
-// =====================================================
-// START GAME
-// =====================================================
+/* START */
 
 startButton.addEventListener(
     "click",
@@ -879,9 +1009,7 @@ startButton.addEventListener(
     }
 );
 
-// =====================================================
-// SERVER: CREATED
-// =====================================================
+/* CREATED */
 
 socket.on("gameCreated", data => {
 
@@ -898,9 +1026,7 @@ socket.on("gameCreated", data => {
     showScreen(lobbyScreen);
 });
 
-// =====================================================
-// SERVER: JOINED
-// =====================================================
+/* JOINED */
 
 socket.on("gameJoined", data => {
 
@@ -915,9 +1041,7 @@ socket.on("gameJoined", data => {
     showScreen(lobbyScreen);
 });
 
-// =====================================================
-// HOST UPDATE
-// =====================================================
+/* HOST */
 
 socket.on("hostUpdate", data => {
 
@@ -929,28 +1053,35 @@ socket.on("hostUpdate", data => {
 function updateHostControls() {
 
     if (socket.id === hostId) {
-        startButton.classList.remove("hidden");
+
+        startButton.classList.remove(
+            "hidden"
+        );
 
         if (currentPhase !== "lobby") {
-            startButton.classList.add("hidden");
+            startButton.classList.add(
+                "hidden"
+            );
         }
+
     } else {
-        startButton.classList.add("hidden");
+
+        startButton.classList.add(
+            "hidden"
+        );
     }
 }
 
-// =====================================================
-// PLAYERS UPDATE
-// =====================================================
+/* PLAYERS */
 
 socket.on("playersUpdate", data => {
 
-    const players = data.players;
+    const players =
+        data.players;
 
     playerCount.textContent =
         players.length;
 
-    // Lobby
     lobbyPlayers.innerHTML = "";
 
     players.forEach(player => {
@@ -958,18 +1089,20 @@ socket.on("playersUpdate", data => {
         const div =
             document.createElement("div");
 
-        div.className = "player";
+        div.className =
+            "player";
 
         div.innerHTML =
             `<strong>${escapeHTML(player.name)}</strong>
-             ${player.id === hostId
-                ? '<span class="host-badge">HOST</span>'
-                : ''}`;
+            ${
+                player.id === hostId
+                    ? '<span class="host-badge">HOST</span>'
+                    : ''
+            }`;
 
         lobbyPlayers.appendChild(div);
     });
 
-    // Game
     gamePlayers.innerHTML = "";
 
     const me =
@@ -979,13 +1112,17 @@ socket.on("playersUpdate", data => {
         );
 
     if (me) {
+
         myAlive = me.alive;
 
         if (!myAlive) {
+
             spectatorText.classList.remove(
                 "hidden"
             );
+
         } else {
+
             spectatorText.classList.add(
                 "hidden"
             );
@@ -997,7 +1134,8 @@ socket.on("playersUpdate", data => {
         const div =
             document.createElement("div");
 
-        div.className = "player-row";
+        div.className =
+            "player-row";
 
         if (player.id === socket.id) {
             div.classList.add("me");
@@ -1009,7 +1147,7 @@ socket.on("playersUpdate", data => {
 
         div.innerHTML =
             `<span>${escapeHTML(player.name)}</span>
-             <span>${player.alive ? "🟢" : "💀"}</span>`;
+            <span>${player.alive ? "🟢" : "💀"}</span>`;
 
         gamePlayers.appendChild(div);
     });
@@ -1017,13 +1155,13 @@ socket.on("playersUpdate", data => {
     updateHostControls();
 });
 
-// =====================================================
-// PHASE
-// =====================================================
+/* PHASE */
 
 socket.on("phaseUpdate", data => {
 
-    currentPhase = data.phase;
+    currentPhase =
+        data.phase;
+
     currentNightStep =
         data.nightStep || null;
 
@@ -1045,14 +1183,20 @@ socket.on("phaseUpdate", data => {
             "☀️ Day";
 
         actionTitle.textContent =
-            "Day Voting";
+            "☀️ Daytime Voting";
 
         actionMessage.textContent =
             myAlive
-                ? "Discuss with everyone, then vote for someone you think is Mafia."
+                ? hasVoted
+                    ? "Your vote has been submitted."
+                    : "Tap a player's name to choose who you want to vote for."
                 : "You are dead and cannot vote.";
 
-        if (myAlive) {
+        if (
+            myAlive &&
+            !hasVoted
+        ) {
+
             socket.emit(
                 "requestVoteTargets",
                 {
@@ -1060,9 +1204,8 @@ socket.on("phaseUpdate", data => {
                 }
             );
         }
-    }
 
-    if (data.phase === "night") {
+    } else if (data.phase === "night") {
 
         const names = {
             mafia: "🔴 Mafia Decision",
@@ -1073,9 +1216,9 @@ socket.on("phaseUpdate", data => {
         phaseText.textContent =
             names[data.nightStep] ||
             "🌙 Night";
-    }
 
-    if (data.phase === "ended") {
+    } else if (data.phase === "ended") {
+
         phaseText.textContent =
             "Game Over";
     }
@@ -1091,13 +1234,12 @@ socket.on("phaseUpdate", data => {
     updateChatMode();
 });
 
-// =====================================================
-// ROLE
-// =====================================================
+/* ROLE */
 
 socket.on("yourRole", data => {
 
-    myRole = data.role;
+    myRole =
+        data.role;
 
     roleName.textContent =
         data.role;
@@ -1106,6 +1248,7 @@ socket.on("yourRole", data => {
         "role-name";
 
     if (data.role === "Mafia") {
+
         roleName.classList.add(
             "role-mafia"
         );
@@ -1115,12 +1258,12 @@ socket.on("yourRole", data => {
 
         mafiaMembers.innerHTML =
             `<strong>Mafia members:</strong>
-             ${data.mafiaMembers
+            ${data.mafiaMembers
                 .map(escapeHTML)
                 .join(", ")}`;
-    }
 
-    if (data.role === "Doctor") {
+    } else if (data.role === "Doctor") {
+
         roleName.classList.add(
             "role-doctor"
         );
@@ -1129,20 +1272,20 @@ socket.on("yourRole", data => {
             "You can protect one living player each night.";
 
         mafiaMembers.textContent = "";
-    }
 
-    if (data.role === "Detective") {
+    } else if (data.role === "Detective") {
+
         roleName.classList.add(
             "role-detective"
         );
 
         roleInfo.textContent =
-            "Investigate one living player each night to see if they are Mafia.";
+            "Investigate one living player each night.";
 
         mafiaMembers.textContent = "";
-    }
 
-    if (data.role === "Citizen") {
+    } else {
+
         roleName.classList.add(
             "role-citizen"
         );
@@ -1156,16 +1299,12 @@ socket.on("yourRole", data => {
     updateChatMode();
 });
 
-// =====================================================
-// NIGHT STARTED
-// =====================================================
+/* NIGHT */
 
 socket.on("nightStarted", data => {
 
     currentNightStep =
         data.step;
-
-    selectedAction = false;
 
     actionTitle.textContent =
         data.title;
@@ -1181,54 +1320,48 @@ socket.on("nightStarted", data => {
     updateChatMode();
 });
 
-// =====================================================
-// ACTION SUBMITTED
-// =====================================================
+/* ACTION */
 
 socket.on("actionSubmitted", data => {
 
-    selectedAction = true;
-
     actionMessage.textContent =
-        data.message || "Action submitted.";
+        data.message ||
+        "Action submitted.";
 
     targetList.innerHTML = "";
 
     updateChatMode();
 });
 
-// =====================================================
-// DETECTIVE RESULT
-// =====================================================
+/* DETECTIVE */
 
 socket.on("detectiveResult", data => {
 
     const result =
         data.mafia
-            ? `🔎 Investigation: ${data.name} IS Mafia.`
-            : `🔎 Investigation: ${data.name} is NOT Mafia.`;
+            ? `🔎 ${data.name} IS Mafia.`
+            : `🔎 ${data.name} is NOT Mafia.`;
 
     addSystemChat(result);
 });
 
-// =====================================================
-// VOTE TARGETS
-// =====================================================
+/* VOTE TARGETS */
 
 socket.on("voteTargets", data => {
 
     if (
         currentPhase !== "day" ||
-        !myAlive
+        !myAlive ||
+        hasVoted
     ) {
         return;
     }
 
     actionTitle.textContent =
-        "🗳️ Vote";
+        "☀️ Daytime Voting";
 
     actionMessage.textContent =
-        "Choose a player to eliminate.";
+        "Tap a player's name to choose who you want to vote for.";
 
     renderTargets(
         data.targets || [],
@@ -1236,23 +1369,12 @@ socket.on("voteTargets", data => {
     );
 });
 
-// =====================================================
-// VOTE SUBMITTED
-// =====================================================
+/* TARGETS */
 
-socket.on("voteSubmitted", data => {
-
-    actionMessage.textContent =
-        `You voted for ${data.targetName}.`;
-
-    targetList.innerHTML = "";
-});
-
-// =====================================================
-// TARGET BUTTONS
-// =====================================================
-
-function renderTargets(targets, type) {
+function renderTargets(
+    targets,
+    type
+) {
 
     targetList.innerHTML = "";
 
@@ -1275,51 +1397,168 @@ function renderTargets(targets, type) {
 
             if (!myAlive) return;
 
-            if (type === "vote") {
+            if (
+                type === "vote"
+            ) {
 
-                socket.emit("vote", {
-                    code: roomCode,
-                    targetId: target.id
-                });
+                if (hasVoted) return;
+
+                openVoteConfirmation(
+                    target
+                );
 
             } else {
 
-                socket.emit("nightAction", {
-                    code: roomCode,
-                    targetId: target.id,
-                    step: currentNightStep
-                });
-            }
-
-            selectedAction = true;
-
-            const buttons =
-                targetList.querySelectorAll(
-                    "button"
+                socket.emit(
+                    "nightAction",
+                    {
+                        code: roomCode,
+                        targetId: target.id,
+                        step: currentNightStep
+                    }
                 );
 
-            buttons.forEach(
-                button => {
-                    button.disabled = true;
-                }
-            );
+                const buttons =
+                    targetList.querySelectorAll(
+                        "button"
+                    );
+
+                buttons.forEach(
+                    b => b.disabled = true
+                );
+            }
         };
 
         targetList.appendChild(button);
     });
 }
 
-// =====================================================
-// CHAT MODE
-// =====================================================
+/* OPEN CONFIRMATION */
+
+function openVoteConfirmation(
+    target
+) {
+
+    if (hasVoted) return;
+
+    pendingVoteTarget =
+        target;
+
+    confirmText.textContent =
+        `Are you sure you want to vote for ${target.name}?`;
+
+    confirmOverlay.classList.add(
+        "active"
+    );
+}
+
+/* CANCEL */
+
+cancelVoteButton.addEventListener(
+    "click",
+    () => {
+
+        pendingVoteTarget =
+            null;
+
+        confirmOverlay.classList.remove(
+            "active"
+        );
+    }
+);
+
+/* CONFIRM */
+
+confirmVoteButton.addEventListener(
+    "click",
+    () => {
+
+        if (
+            !pendingVoteTarget ||
+            hasVoted
+        ) {
+            return;
+        }
+
+        const target =
+            pendingVoteTarget;
+
+        hasVoted = true;
+
+        confirmOverlay.classList.remove(
+            "active"
+        );
+
+        pendingVoteTarget =
+            null;
+
+        socket.emit(
+            "vote",
+            {
+                code: roomCode,
+                targetId: target.id
+            }
+        );
+
+        targetList.innerHTML = "";
+
+        actionTitle.textContent =
+            "☀️ Daytime Voting";
+
+        actionMessage.textContent =
+            `Your vote has been submitted for ${target.name}.`;
+    }
+);
+
+/* VOTE SUBMITTED */
+
+socket.on("voteSubmitted", data => {
+
+    hasVoted = true;
+
+    actionTitle.textContent =
+        "☀️ Daytime Voting";
+
+    actionMessage.textContent =
+        `Your vote has been submitted for ${data.targetName}.`;
+
+    targetList.innerHTML = "";
+});
+
+/* RESET VOTE */
+
+socket.on("dayStarted", () => {
+
+    hasVoted = false;
+
+    pendingVoteTarget =
+        null;
+
+    actionTitle.textContent =
+        "☀️ Daytime Voting";
+
+    actionMessage.textContent =
+        "Tap a player's name to choose who you want to vote for.";
+
+    socket.emit(
+        "requestVoteTargets",
+        {
+            code: roomCode
+        }
+    );
+});
+
+/* CHAT MODE */
 
 function updateChatMode() {
 
     if (!myAlive) {
+
         chatMode.textContent =
             "💀 Dead players cannot chat.";
 
         chatInput.disabled = true;
+
         document.getElementById(
             "chatButton"
         ).disabled = true;
@@ -1343,12 +1582,17 @@ function updateChatMode() {
 
     if (currentPhase === "night") {
 
-        if (currentNightStep === "mafia") {
+        if (
+            currentNightStep === "mafia"
+        ) {
 
             if (myRole === "Mafia") {
+
                 chatMode.textContent =
                     "🔴 Private Mafia chat — only Mafia can see this.";
+
             } else {
+
                 chatMode.textContent =
                     "🔴 The Mafia are deciding.";
             }
@@ -1356,12 +1600,17 @@ function updateChatMode() {
             return;
         }
 
-        if (currentNightStep === "doctor") {
+        if (
+            currentNightStep === "doctor"
+        ) {
 
             if (myRole === "Doctor") {
+
                 chatMode.textContent =
                     "🩺 Private Doctor chat.";
+
             } else {
+
                 chatMode.textContent =
                     "🩺 The Doctor is deciding.";
             }
@@ -1369,12 +1618,17 @@ function updateChatMode() {
             return;
         }
 
-        if (currentNightStep === "detective") {
+        if (
+            currentNightStep === "detective"
+        ) {
 
             if (myRole === "Detective") {
+
                 chatMode.textContent =
                     "🔎 Private Detective chat.";
+
             } else {
+
                 chatMode.textContent =
                     "🔎 The Detective is investigating.";
             }
@@ -1387,9 +1641,7 @@ function updateChatMode() {
         "Chat unavailable.";
 }
 
-// =====================================================
-// CHAT SEND
-// =====================================================
+/* CHAT SEND */
 
 document
     .getElementById("chatButton")
@@ -1417,27 +1669,31 @@ function sendChat() {
 
     if (!message) return;
 
-    socket.emit("chat", {
-        code: roomCode,
-        message
-    });
+    socket.emit(
+        "chat",
+        {
+            code: roomCode,
+            message
+        }
+    );
 
     chatInput.value = "";
 }
 
-// =====================================================
-// CHAT RECEIVED
-// =====================================================
+/* CHAT RECEIVED */
 
 socket.on("chatMessage", data => {
 
     const div =
         document.createElement("div");
 
-    div.className = "message";
+    div.className =
+        "message";
 
     if (data.private) {
-        div.classList.add("private");
+        div.classList.add(
+            "private"
+        );
     }
 
     div.innerHTML =
@@ -1451,9 +1707,7 @@ socket.on("chatMessage", data => {
         chatMessages.scrollHeight;
 });
 
-// =====================================================
-// SYSTEM MESSAGE
-// =====================================================
+/* SYSTEM */
 
 socket.on("systemMessage", message => {
     addSystemChat(message);
@@ -1476,23 +1730,27 @@ function addSystemChat(message) {
         chatMessages.scrollHeight;
 }
 
-// =====================================================
-// GAME OVER
-// =====================================================
+/* GAME OVER */
 
 socket.on("gameOver", data => {
 
-    currentPhase = "ended";
+    currentPhase =
+        "ended";
 
     const winnerText =
         document.getElementById(
             "winnerText"
         );
 
-    if (data.winner === "Mafia") {
+    if (
+        data.winner === "Mafia"
+    ) {
+
         winnerText.textContent =
             "🔴 Mafia Wins!";
+
     } else {
+
         winnerText.textContent =
             "🟢 Citizens Win!";
     }
@@ -1504,30 +1762,30 @@ socket.on("gameOver", data => {
 
     resultsList.innerHTML = "";
 
-    data.players.forEach(player => {
+    data.players.forEach(
+        player => {
 
-        const div =
-            document.createElement("div");
+            const div =
+                document.createElement("div");
 
-        div.className =
-            "result-player";
+            div.className =
+                "result-player";
 
-        div.innerHTML =
-            `<strong>${escapeHTML(player.name)}</strong>
-             — ${escapeHTML(player.role)}
-             ${player.alive ? "🟢" : "💀"}`;
+            div.innerHTML =
+                `<strong>${escapeHTML(player.name)}</strong>
+                — ${escapeHTML(player.role)}
+                ${player.alive ? "🟢" : "💀"}`;
 
-        resultsList.appendChild(div);
-    });
+            resultsList.appendChild(div);
+        }
+    );
 
     gameOverOverlay.classList.add(
         "active"
     );
 });
 
-// =====================================================
-// ERROR
-// =====================================================
+/* ERROR */
 
 socket.on("errorMessage", message => {
 
@@ -1536,15 +1794,16 @@ socket.on("errorMessage", message => {
             "active"
         )
     ) {
+
         showLobbyError(message);
+
     } else {
+
         showError(message);
     }
 });
 
-// =====================================================
-// HTML ESCAPE
-// =====================================================
+/* ESCAPE HTML */
 
 function escapeHTML(value) {
 
@@ -1555,12 +1814,6 @@ function escapeHTML(value) {
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
 }
-
-// =====================================================
-// INITIAL
-// =====================================================
-
-updateChatMode();
 
 </script>
 
